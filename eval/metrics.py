@@ -1,6 +1,8 @@
 """Cross-agent quality metrics — parse audit logs and test results."""
 
 import json
+import re
+import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -23,10 +25,14 @@ class AgentMetrics:
     max_latency_ms: float = 0.0
     total_tests: int = 0
     passed_tests: int = 0
+    failed_tests: int = 0
+    skipped_tests: int = 0
     total_contracts: int = 0
     total_audit_entries: int = 0
     hitl_count: int = 0
     blocked_count: int = 0
+    silent_failure_count: int = 0
+    silent_failure_scanned: bool = False
     details: dict = field(default_factory=dict)
 
 
@@ -48,10 +54,171 @@ def _threshold_label(value: float, metric_cfg: dict) -> str:
         return "🔴"
 
 
+def _run_pytest(repo_path: Path) -> tuple[int, int, int]:
+    """Run pytest in the given repo and return (passed, failed, skipped).
+
+    Parses the pytest summary line like '43 passed, 7 skipped'.
+    """
+    try:
+        result = subprocess.run(
+            ["uv", "run", "pytest", "tests/", "-v", "--tb=no", "-q"],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        output = result.stdout + result.stderr
+    except Exception:
+        return (0, 0, 0)
+
+    passed = failed = skipped = 0
+    # Match patterns like "43 passed", "7 skipped", "2 failed"
+    m = re.search(r"(\d+) passed", output)
+    if m:
+        passed = int(m.group(1))
+    m = re.search(r"(\d+) failed", output)
+    if m:
+        failed = int(m.group(1))
+    m = re.search(r"(\d+) skipped", output)
+    if m:
+        skipped = int(m.group(1))
+
+    return (passed, failed, skipped)
+
+
+def _load_source_data(repo_path: Path, data_file: str) -> list[dict]:
+    """Load a JSONL data file (contracts.jsonl or materials.jsonl)."""
+    path = repo_path / "data" / data_file
+    items = []
+    if path.exists():
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    items.append(json.loads(line))
+    return items
+
+
+def _detect_silent_failures_contract(entries: list[dict], contracts: list[dict]) -> int:
+    """Count contracts with risk signals that were auto-approved (no HITL/block).
+
+    Risk signals for contract-approval-agent:
+    - 关联方标记=true
+    - extraction_low_confidence=true (in state, but we check audit_log for this)
+    - 条款标记.不可逆=true
+    - 条款标记.担保=true
+
+    A silent failure = risk signal present + final decision is auto_approved.
+    """
+    # Build lookup: contract_id -> contract data
+    contract_map = {c["id"]: c for c in contracts}
+
+    # Find contracts that were auto-approved
+    auto_approved = set()
+    for e in entries:
+        if e.get("decision") == "auto_approved":
+            auto_approved.add(e.get("contract_id", ""))
+
+    # Find contracts where HITL was triggered (approved/rejected by human)
+    hitl_triggered = set()
+    for e in entries:
+        if e.get("decision") in ("approved", "rejected"):
+            hitl_triggered.add(e.get("contract_id", ""))
+
+    # Find contracts blocked by guardrails
+    blocked = set()
+    for e in entries:
+        if e.get("decision") == "blocked":
+            blocked.add(e.get("contract_id", ""))
+
+    count = 0
+    for cid in auto_approved:
+        if cid in hitl_triggered or cid in blocked:
+            continue  # was also HITL'd or blocked, not silent
+        c = contract_map.get(cid)
+        if c is None:
+            continue
+        has_risk = False
+        if c.get("关联方标记", False):
+            has_risk = True
+        if c.get("条款标记", {}).get("不可逆", False):
+            has_risk = True
+        if c.get("条款标记", {}).get("担保", False):
+            has_risk = True
+        # Check for extraction_low_confidence in audit log
+        for e in entries:
+            if e.get("contract_id") == cid and "low_confidence" in e.get("decision", ""):
+                has_risk = True
+                break
+        if has_risk:
+            count += 1
+
+    return count
+
+
+def _detect_silent_failures_compliance(entries: list[dict], materials: list[dict]) -> int:
+    """Count materials with risk signals that were auto-approved (no HITL/block).
+
+    Risk signals for compliance-review-agent:
+    - 关联方标记=true
+    - 涉及数据共享=true AND 涉及受监管业务=true
+    - 条款标记.担保=true
+    - 内容摘要 contains '反垄断' AND 金额>3000000
+
+    A silent failure = risk signal present + final decision is auto_approved.
+    """
+    material_map = {m["id"]: m for m in materials}
+
+    auto_approved = set()
+    for e in entries:
+        if e.get("decision") == "auto_approved":
+            auto_approved.add(e.get("material_id", ""))
+
+    hitl_triggered = set()
+    for e in entries:
+        if e.get("decision") in ("approved", "rejected"):
+            hitl_triggered.add(e.get("material_id", ""))
+
+    blocked = set()
+    for e in entries:
+        if e.get("decision") == "blocked":
+            blocked.add(e.get("material_id", ""))
+
+    count = 0
+    for mid in auto_approved:
+        if mid in hitl_triggered or mid in blocked:
+            continue
+        m = material_map.get(mid)
+        if m is None:
+            continue
+        has_risk = False
+        if m.get("关联方标记", False):
+            has_risk = True
+        if m.get("涉及数据共享", False) and m.get("涉及受监管业务", False):
+            has_risk = True
+        if m.get("条款标记", {}).get("担保", False):
+            has_risk = True
+        if "反垄断" in m.get("内容摘要", "") and m.get("金额", 0) > 3_000_000:
+            has_risk = True
+        if has_risk:
+            count += 1
+
+    return count
+
+
 def parse_contract_audit(repo_path: Path) -> AgentMetrics:
     """Parse contract-approval-agent audit logs and test expectations."""
     m = AgentMetrics(name="contract-approval-agent")
 
+    # --- Real pytest run ---
+    passed, failed, skipped = _run_pytest(repo_path)
+    m.passed_tests = passed
+    m.failed_tests = failed
+    m.skipped_tests = skipped
+    m.total_tests = passed + failed  # completion rate denominator excludes skipped
+    if m.total_tests > 0:
+        m.task_completion_rate = m.passed_tests / m.total_tests
+
+    # --- Audit log ---
     audit_path = repo_path / "data" / "audit_log.jsonl"
     entries = []
     if audit_path.exists():
@@ -63,8 +230,7 @@ def parse_contract_audit(repo_path: Path) -> AgentMetrics:
     m.total_audit_entries = len(entries)
     m.total_contracts = len(set(e.get("contract_id", "") for e in entries))
 
-    # Count unique contracts by final outcome
-    hitl_contracts = set()   # approved or rejected (human decision)
+    hitl_contracts = set()
     blocked_contracts = set()
     auto_contracts = set()
     for e in entries:
@@ -80,33 +246,32 @@ def parse_contract_audit(repo_path: Path) -> AgentMetrics:
     m.hitl_count = len(hitl_contracts)
     m.blocked_count = len(blocked_contracts)
 
-    # Latency
     durations = [e.get("duration_ms", 0) for e in entries]
     if durations:
         m.avg_latency_ms = sum(durations) / len(durations)
         m.max_latency_ms = max(durations)
 
-    # Test count
-    test_path = repo_path / "tests" / "test_trajectories.py"
-    if test_path.exists():
-        content = test_path.read_text()
-        m.total_tests = content.count("class Test")
-        m.passed_tests = m.total_tests  # latest run all passed
-
-    if m.total_tests > 0:
-        m.task_completion_rate = m.passed_tests / m.total_tests
-
     if m.total_contracts > 0:
         m.hitl_trigger_rate = len(hitl_contracts) / m.total_contracts
         m.guardrail_block_rate = len(blocked_contracts) / m.total_contracts
 
-    # Accuracy proxy: expected outcomes from test design
+    # Accuracy proxy
     expected_auto = {"C001", "C005", "C007"}
     expected_block = {"C003", "C004", "C009", "C011"}
     expected_hitl = {"C002", "C006", "C008", "C010"}
     correct = len(expected_auto & auto_contracts) + len(expected_block & blocked_contracts) + len(expected_hitl & hitl_contracts)
     total = len(expected_auto | expected_block | expected_hitl)
     m.accuracy_proxy = correct / total if total else 0
+
+    # --- Real silent failure scan ---
+    contracts = _load_source_data(repo_path, "contracts.jsonl")
+    m.silent_failure_count = _detect_silent_failures_contract(entries, contracts)
+    m.silent_failure_scanned = True
+    m.silent_failure_rate = m.silent_failure_count / m.total_contracts if m.total_contracts > 0 else 0
+    if m.silent_failure_count == 0:
+        m.details["silent_failure_note"] = "已按规则扫描，当前无命中"
+    else:
+        m.details["silent_failure_note"] = f"扫描命中 {m.silent_failure_count} 个用例"
 
     return m
 
@@ -115,6 +280,16 @@ def parse_compliance_audit(repo_path: Path) -> AgentMetrics:
     """Parse compliance-review-agent audit logs and test expectations."""
     m = AgentMetrics(name="compliance-review-agent")
 
+    # --- Real pytest run ---
+    passed, failed, skipped = _run_pytest(repo_path)
+    m.passed_tests = passed
+    m.failed_tests = failed
+    m.skipped_tests = skipped
+    m.total_tests = passed + failed
+    if m.total_tests > 0:
+        m.task_completion_rate = m.passed_tests / m.total_tests
+
+    # --- Audit log ---
     audit_path = repo_path / "data" / "audit_log.jsonl"
     entries = []
     if audit_path.exists():
@@ -126,7 +301,6 @@ def parse_compliance_audit(repo_path: Path) -> AgentMetrics:
     m.total_audit_entries = len(entries)
     m.total_contracts = len(set(e.get("material_id", "") for e in entries))
 
-    # Count unique materials by final outcome
     hitl_materials = set()
     auto_materials = set()
     blocked_materials = set()
@@ -148,15 +322,6 @@ def parse_compliance_audit(repo_path: Path) -> AgentMetrics:
         m.avg_latency_ms = sum(durations) / len(durations)
         m.max_latency_ms = max(durations)
 
-    test_path = repo_path / "tests" / "test_trajectories.py"
-    if test_path.exists():
-        content = test_path.read_text()
-        m.total_tests = content.count("class Test")
-        m.passed_tests = m.total_tests
-
-    if m.total_tests > 0:
-        m.task_completion_rate = m.passed_tests / m.total_tests
-
     if m.total_contracts > 0:
         m.hitl_trigger_rate = len(hitl_materials) / m.total_contracts
         m.guardrail_block_rate = len(blocked_materials) / m.total_contracts
@@ -168,9 +333,15 @@ def parse_compliance_audit(repo_path: Path) -> AgentMetrics:
     total = len(expected_auto | expected_hitl)
     m.accuracy_proxy = correct / total if total else 0
 
-    # Silent failure proxy: M013 case
-    m.silent_failure_rate = 1 / m.total_contracts if m.total_contracts > 0 else 0
-    m.details["silent_failure_case"] = "M013: confidence=0.82 法规依据为零（已修复 prompt 语义）"
+    # --- Real silent failure scan ---
+    materials = _load_source_data(repo_path, "materials.jsonl")
+    m.silent_failure_count = _detect_silent_failures_compliance(entries, materials)
+    m.silent_failure_scanned = True
+    m.silent_failure_rate = m.silent_failure_count / m.total_contracts if m.total_contracts > 0 else 0
+    if m.silent_failure_count == 0:
+        m.details["silent_failure_note"] = "已按规则扫描，当前无命中"
+    else:
+        m.details["silent_failure_note"] = f"扫描命中 {m.silent_failure_count} 个用例"
 
     return m
 
@@ -192,7 +363,8 @@ def generate_dashboard(metrics_list: list[AgentMetrics], thresholds: dict) -> st
         # Task completion
         cfg = t["task_completion_rate"]
         status = _threshold_label(m.task_completion_rate, cfg)
-        lines.append(f"| 任务完成率 | {m.task_completion_rate:.1%} {status} | {m.passed_tests}/{m.total_tests} 测试通过 |")
+        skip_note = f"（{m.skipped_tests} 个因无 key 跳过）" if m.skipped_tests > 0 else ""
+        lines.append(f"| 任务完成率 | {m.task_completion_rate:.1%} {status} | {m.passed_tests}/{m.total_tests} passed{skip_note} |")
 
         # Accuracy proxy
         cfg = t["accuracy_proxy"]
@@ -212,8 +384,8 @@ def generate_dashboard(metrics_list: list[AgentMetrics], thresholds: dict) -> st
         # Silent failure
         cfg = t["silent_failure_rate"]
         status = _threshold_label(m.silent_failure_rate, cfg)
-        sf_note = m.details.get("silent_failure_case", "")
-        lines.append(f"| Silent Failure 代理 | {m.silent_failure_rate:.1%} {status} | {sf_note} |")
+        sf_note = m.details.get("silent_failure_note", "未扫描")
+        lines.append(f"| Silent Failure | {m.silent_failure_rate:.1%} {status} | {sf_note} |")
 
         # Latency
         cfg = t["cost_latency_proxy"]
