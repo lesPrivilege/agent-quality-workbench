@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 立项与质量评估工作台</title>
+<meta name="description" content="PM 侧的决策与评估工具——复杂度阶梯评分器 + 跨 Agent 质量仪表盘，静态数据快照。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --accent:#4b44e0; }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;background:#F4F3EF;color:#191A1C;
+    font-family:'Space Grotesk',-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;line-height:1.5;
+  }
+  ::selection{background:rgba(75,68,224,0.18);}
+  a{color:inherit;}
+  @keyframes spinSlow{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion: reduce){*{animation-duration:.001ms !important;}}
+
+  [data-reveal]{transform:translateY(22px);}
+  [data-reveal].in{transform:none;transition:transform .8s cubic-bezier(.2,.75,.25,1);}
+
+  .nav-link{text-decoration:none;font-size:13.5px;padding:8px 13px;border-radius:9px;color:#7B7D83;font-weight:500;letter-spacing:.01em;transition:color .2s,background .2s;}
+  .nav-link:hover{background:rgba(20,20,25,0.05);}
+  .nav-link.active{color:#191A1C;font-weight:600;}
+  .src-btn{margin-left:8px;text-decoration:none;font-size:13px;font-weight:600;padding:8px 15px;border-radius:10px;color:#F4F3EF;background:#191A1C;transition:transform .2s,background .2s;display:inline-block;}
+  .src-btn:hover{background:var(--accent);transform:translateY(-1px);}
+  .gap-card{background:#FFFFFF;border:1px solid rgba(20,20,25,0.08);border-radius:20px;padding:26px 24px;display:flex;flex-direction:column;gap:16px;box-shadow:0 1px 2px rgba(20,20,30,0.03),0 10px 34px rgba(20,20,30,0.04);transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s;}
+  .gap-card:hover{transform:translateY(-4px);box-shadow:0 1px 2px rgba(20,20,30,0.04),0 20px 44px rgba(20,20,30,0.08);}
+  .m013-btn{margin-top:18px;display:inline-flex;align-items:center;gap:8px;background:none;border:1px solid rgba(255,255,255,0.16);color:#EDEDEA;font-family:inherit;font-size:13px;font-weight:500;padding:9px 16px;border-radius:999px;cursor:pointer;transition:background .2s;}
+  .m013-btn:hover{background:rgba(255,255,255,0.06);}
+  .m013-chev{display:inline-block;transition:transform .3s;}
+  .m013-chev.open{transform:rotate(180deg);}
+</style>
+</head>
+<body>
+<div style="min-height:100vh;overflow-x:hidden;">
+
+  <!-- ===== NAV ===== -->
+  <nav style="position:sticky;top:0;z-index:60;backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);background:rgba(244,243,239,0.78);border-bottom:1px solid rgba(20,20,25,0.08);">
+    <div style="max-width:1120px;margin:0 auto;padding:0 32px;height:66px;display:flex;align-items:center;justify-content:space-between;gap:24px;">
+      <a href="#hero" style="display:flex;align-items:center;gap:11px;text-decoration:none;color:#191A1C;">
+        <span style="width:16px;height:16px;background:var(--accent);transform:rotate(45deg);border-radius:3px;display:inline-block;"></span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:.02em;font-weight:600;">agent-pm / workbench</span>
+      </a>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <a href="#why" class="nav-link" data-nav="why">为什么</a>
+        <a href="#ladder" class="nav-link" data-nav="ladder">复杂度阶梯</a>
+        <a href="#dashboard" class="nav-link" data-nav="dashboard">质量仪表盘</a>
+        <a href="#silent" class="nav-link" data-nav="silent">Silent Failure</a>
+        <a href="https://github.com/lesPrivilege/agent-quality-workbench" target="_blank" rel="noopener" class="src-btn">查看源码 <span style="opacity:.6;">↗</span></a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== HERO ===== -->
+  <section id="hero" style="max-width:1120px;margin:0 auto;padding:0 32px;">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:40px;padding:84px 0 72px;min-height:74vh;">
+      <div style="flex:1 1 460px;min-width:320px;">
+        <div data-reveal style="font-family:'JetBrains Mono',monospace;font-size:12.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:500;margin-bottom:22px;">Agent PM · 决策与评估工作台</div>
+        <h1 data-reveal style="font-size:clamp(32px,4.6vw,58px);line-height:1.08;font-weight:700;letter-spacing:-.02em;margin:0 0 24px;text-wrap:balance;">回答两个问题：<br>这个场景<span style="color:var(--accent);">该不该</span>上 agent，<br>上线后<span style="color:var(--accent);">表现如何</span>。</h1>
+        <p data-reveal style="font-size:clamp(15px,1.5vw,18px);line-height:1.7;color:#5C5E63;max-width:520px;margin:0 0 40px;">PM 侧的决策与评估工具——不是第三个 agent 项目，而是评判「该不该做、做得好不好」的框架。本页是一次性渲染的展示层，不接后端、不含实时数据。</p>
+        <div data-reveal style="display:flex;flex-wrap:wrap;gap:14px 40px;">
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <div style="display:flex;align-items:baseline;gap:6px;"><span style="font-size:40px;font-weight:700;letter-spacing:-.02em;line-height:1;">6</span><span style="font-size:15px;color:#9A9CA2;font-weight:500;">维度</span></div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#8A8C90;letter-spacing:.02em;">加权评估模型</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <div style="display:flex;align-items:baseline;gap:6px;"><span style="font-size:40px;font-weight:700;letter-spacing:-.02em;line-height:1;">0</span><span style="font-size:15px;color:#9A9CA2;font-weight:500;">起</span></div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#8A8C90;letter-spacing:.02em;">Silent Failure</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <div style="display:flex;align-items:baseline;gap:6px;"><span style="font-size:40px;font-weight:700;letter-spacing:-.02em;line-height:1;">2</span><span style="font-size:15px;color:#9A9CA2;font-weight:500;">个</span></div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#8A8C90;letter-spacing:.02em;">真实 agent 回测</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- abstract geometric framework motif -->
+      <div data-reveal style="flex:1 1 360px;min-width:300px;display:flex;justify-content:center;">
+        <div style="position:relative;width:min(420px,80vw);aspect-ratio:1/1;">
+          <div style="position:absolute;inset:0;border-radius:50%;border:1px solid rgba(20,20,25,0.1);"></div>
+          <div style="position:absolute;inset:16%;border-radius:50%;border:1px dashed rgba(20,20,25,0.13);"></div>
+          <div style="position:absolute;inset:33%;border-radius:50%;border:1px solid rgba(75,68,224,0.2);background:color-mix(in oklab,var(--accent),transparent 94%);"></div>
+          <div style="position:absolute;inset:0;animation:spinSlow 90s linear infinite;">
+            <div style="position:absolute;top:50%;left:50%;width:1.5px;height:38%;background:linear-gradient(180deg,var(--accent),transparent);transform-origin:top center;transform:translateX(-50%) rotate(0deg);opacity:.5;"></div>
+            <div style="position:absolute;top:50%;left:50%;width:1.5px;height:38%;background:linear-gradient(180deg,var(--accent),transparent);transform-origin:top center;transform:translateX(-50%) rotate(60deg);opacity:.5;"></div>
+            <div style="position:absolute;top:50%;left:50%;width:1.5px;height:38%;background:linear-gradient(180deg,var(--accent),transparent);transform-origin:top center;transform:translateX(-50%) rotate(120deg);opacity:.5;"></div>
+            <div style="position:absolute;top:50%;left:50%;width:1.5px;height:38%;background:linear-gradient(180deg,var(--accent),transparent);transform-origin:top center;transform:translateX(-50%) rotate(180deg);opacity:.5;"></div>
+            <div style="position:absolute;top:50%;left:50%;width:1.5px;height:38%;background:linear-gradient(180deg,var(--accent),transparent);transform-origin:top center;transform:translateX(-50%) rotate(240deg);opacity:.5;"></div>
+            <div style="position:absolute;top:50%;left:50%;width:1.5px;height:38%;background:linear-gradient(180deg,var(--accent),transparent);transform-origin:top center;transform:translateX(-50%) rotate(300deg);opacity:.5;"></div>
+            <div style="position:absolute;top:50%;left:50%;transform:rotate(0deg) translateY(-38%);"><div style="width:13px;height:13px;border-radius:50%;background:var(--accent);transform:translate(-50%,-50%);box-shadow:0 0 0 5px color-mix(in oklab,var(--accent),transparent 86%);"></div></div>
+            <div style="position:absolute;top:50%;left:50%;transform:rotate(60deg) translateY(-38%);"><div style="width:9px;height:9px;border-radius:50%;background:var(--accent);transform:translate(-50%,-50%);box-shadow:0 0 0 5px color-mix(in oklab,var(--accent),transparent 86%);"></div></div>
+            <div style="position:absolute;top:50%;left:50%;transform:rotate(120deg) translateY(-38%);"><div style="width:13px;height:13px;border-radius:50%;background:var(--accent);transform:translate(-50%,-50%);box-shadow:0 0 0 5px color-mix(in oklab,var(--accent),transparent 86%);"></div></div>
+            <div style="position:absolute;top:50%;left:50%;transform:rotate(180deg) translateY(-38%);"><div style="width:9px;height:9px;border-radius:50%;background:var(--accent);transform:translate(-50%,-50%);box-shadow:0 0 0 5px color-mix(in oklab,var(--accent),transparent 86%);"></div></div>
+            <div style="position:absolute;top:50%;left:50%;transform:rotate(240deg) translateY(-38%);"><div style="width:13px;height:13px;border-radius:50%;background:var(--accent);transform:translate(-50%,-50%);box-shadow:0 0 0 5px color-mix(in oklab,var(--accent),transparent 86%);"></div></div>
+            <div style="position:absolute;top:50%;left:50%;transform:rotate(300deg) translateY(-38%);"><div style="width:9px;height:9px;border-radius:50%;background:var(--accent);transform:translate(-50%,-50%);box-shadow:0 0 0 5px color-mix(in oklab,var(--accent),transparent 86%);"></div></div>
+          </div>
+          <div style="position:absolute;top:50%;left:50%;width:14px;height:14px;border-radius:50%;background:#191A1C;transform:translate(-50%,-50%);box-shadow:0 0 0 6px rgba(25,26,28,0.06);"></div>
+          <div style="position:absolute;bottom:6%;left:50%;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;color:#9A9CA2;white-space:nowrap;">6-DIMENSION MODEL</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ABOUT STRIP ===== -->
+  <div style="border-top:1px solid rgba(20,20,25,0.08);border-bottom:1px solid rgba(20,20,25,0.08);background:#EFEEE9;">
+    <div style="max-width:1120px;margin:0 auto;padding:34px 32px;display:flex;gap:18px;align-items:flex-start;">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;color:var(--accent);font-weight:600;padding-top:3px;white-space:nowrap;">// 关于</span>
+      <p style="margin:0;font-size:clamp(14px,1.5vw,17px);line-height:1.7;color:#40424A;max-width:820px;text-wrap:pretty;">另外两个 demo（合同审批 agent / 合规审查 agent）展示「怎么设计 agent」；这个工作台展示的是「该不该做、做得好不好」——这是 PM 的核心工作，不是第三个 agent 项目。</p>
+    </div>
+  </div>
+
+  <!-- ===== WHY / GAP ===== -->
+  <section id="why" style="max-width:1120px;margin:0 auto;padding:0 32px;">
+    <div data-reveal style="padding:100px 0 40px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:500;margin-bottom:14px;">01 — 为什么需要它</div>
+      <h2 style="font-size:clamp(26px,3.2vw,40px);font-weight:700;letter-spacing:-.02em;margin:0 0 18px;max-width:720px;text-wrap:balance;">立项靠直觉、验收靠 pass/fail，中间是一段没有闭环的空白。</h2>
+      <p style="font-size:16px;line-height:1.7;color:#5C5E63;max-width:640px;margin:0;">四个具体的缺口，从「拍脑袋」到「有据可依」——每一项都对应工作台里的一个模块。</p>
+    </div>
+    <div data-reveal style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;padding-bottom:60px;">
+      <div class="gap-card">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#B5B6BB;font-weight:500;">GAP 01</div>
+        <div style="font-size:16.5px;font-weight:650;line-height:1.4;letter-spacing:-.01em;">「该不该上 agent」靠直觉</div>
+        <div style="display:flex;gap:10px;align-items:flex-start;"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#B0450E;background:rgba(200,84,42,0.1);padding:2px 7px;border-radius:6px;white-space:nowrap;margin-top:1px;">现状</span><span style="font-size:13.5px;line-height:1.6;color:#6A6C72;">PM 拍脑袋决定，没有结构化评估框架</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;border-top:1px solid rgba(20,20,25,0.06);padding-top:14px;"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#1F7A48;background:rgba(46,158,91,0.12);padding:2px 7px;border-radius:6px;white-space:nowrap;margin-top:1px;">补什么</span><span style="font-size:13.5px;line-height:1.6;color:#33353B;font-weight:500;">6 维度加权评分，输出明确的「不建议 / 简单 / 中等 / 复杂」等级</span></div>
+      </div>
+      <div class="gap-card">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#B5B6BB;font-weight:500;">GAP 02</div>
+        <div style="font-size:16.5px;font-weight:650;line-height:1.4;letter-spacing:-.01em;">「agent 表现如何」靠跑测试看 pass/fail</div>
+        <div style="display:flex;gap:10px;align-items:flex-start;"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#B0450E;background:rgba(200,84,42,0.1);padding:2px 7px;border-radius:6px;white-space:nowrap;margin-top:1px;">现状</span><span style="font-size:13.5px;line-height:1.6;color:#6A6C72;">测试全绿但 M013 这种 silent failure 漏过去了</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;border-top:1px solid rgba(20,20,25,0.06);padding-top:14px;"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#1F7A48;background:rgba(46,158,91,0.12);padding:2px 7px;border-radius:6px;white-space:nowrap;margin-top:1px;">补什么</span><span style="font-size:13.5px;line-height:1.6;color:#33353B;font-weight:500;">仪表盘从 audit_log 提取 HITL 触发率、guardrail 拦截率、silent failure 代理等运营指标</span></div>
+      </div>
+      <div class="gap-card">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#B5B6BB;font-weight:500;">GAP 03</div>
+        <div style="font-size:16.5px;font-weight:650;line-height:1.4;letter-spacing:-.01em;">两个 agent 项目各自独立评估</div>
+        <div style="display:flex;gap:10px;align-items:flex-start;"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#B0450E;background:rgba(200,84,42,0.1);padding:2px 7px;border-radius:6px;white-space:nowrap;margin-top:1px;">现状</span><span style="font-size:13.5px;line-height:1.6;color:#6A6C72;">没有跨项目的横向对比</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;border-top:1px solid rgba(20,20,25,0.06);padding-top:14px;"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#1F7A48;background:rgba(46,158,91,0.12);padding:2px 7px;border-radius:6px;white-space:nowrap;margin-top:1px;">补什么</span><span style="font-size:13.5px;line-height:1.6;color:#33353B;font-weight:500;">统一仪表盘，同口径对比两个 agent 的完成率 / 准确率 / HITL 率</span></div>
+      </div>
+      <div class="gap-card">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#B5B6BB;font-weight:500;">GAP 04</div>
+        <div style="font-size:16.5px;font-weight:650;line-height:1.4;letter-spacing:-.01em;">立项和验收之间没有闭环</div>
+        <div style="display:flex;gap:10px;align-items:flex-start;"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#B0450E;background:rgba(200,84,42,0.1);padding:2px 7px;border-radius:6px;white-space:nowrap;margin-top:1px;">现状</span><span style="font-size:13.5px;line-height:1.6;color:#6A6C72;">立项时说「需要 HITL」，验收时不知道 HITL 率是否合理</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;border-top:1px solid rgba(20,20,25,0.06);padding-top:14px;"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#1F7A48;background:rgba(46,158,91,0.12);padding:2px 7px;border-radius:6px;white-space:nowrap;margin-top:1px;">补什么</span><span style="font-size:13.5px;line-height:1.6;color:#33353B;font-weight:500;">复杂度阶梯的推荐等级和仪表盘的实际 HITL 率可以交叉验证</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== MODULE 1: LADDER ===== -->
+  <section id="ladder" style="max-width:1120px;margin:0 auto;padding:0 32px;">
+    <div data-reveal style="padding:80px 0 34px;">
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;">
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:500;margin-bottom:14px;">02 — 模块一</div>
+          <h2 style="font-size:clamp(26px,3.2vw,40px);font-weight:700;letter-spacing:-.02em;margin:0;text-wrap:balance;">复杂度阶梯评分器</h2>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#8A8C90;">6 维度加权 · 权重和 = 1.0 · 满分 5.0</div>
+      </div>
+    </div>
+
+    <div data-reveal style="background:#FFFFFF;border:1px solid rgba(20,20,25,0.08);border-radius:24px;padding:44px 40px 34px;box-shadow:0 1px 2px rgba(20,20,30,0.03),0 14px 44px rgba(20,20,30,0.05);">
+      <div style="position:relative;padding-bottom:74px;">
+        <div style="display:flex;align-items:flex-end;height:130px;gap:4px;">
+          <div style="width:20%;height:34px;background:#E4E3DD;border-radius:8px 8px 3px 3px;position:relative;display:flex;align-items:flex-start;justify-content:center;padding-top:8px;"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#8A8C90;">0</span></div>
+          <div style="width:20%;height:52px;background:color-mix(in oklab,var(--accent),#F4F3EF 80%);border-radius:8px 8px 3px 3px;position:relative;display:flex;align-items:flex-start;justify-content:center;padding-top:8px;"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#5C5E63;">1</span></div>
+          <div style="width:16%;height:70px;background:color-mix(in oklab,var(--accent),#F4F3EF 62%);border-radius:8px 8px 3px 3px;position:relative;display:flex;align-items:flex-start;justify-content:center;padding-top:8px;"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#40424A;">2</span></div>
+          <div style="width:14%;height:88px;background:color-mix(in oklab,var(--accent),#F4F3EF 40%);border-radius:8px 8px 3px 3px;position:relative;display:flex;align-items:flex-start;justify-content:center;padding-top:8px;"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#33353B;">3</span></div>
+          <div style="width:14%;height:106px;background:color-mix(in oklab,var(--accent),#F4F3EF 16%);border-radius:8px 8px 3px 3px;position:relative;display:flex;align-items:flex-start;justify-content:center;padding-top:8px;"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#FFFFFF;">4</span></div>
+          <div style="width:16%;height:124px;background:linear-gradient(180deg,#D8503A,#B0450E);border-radius:8px 8px 3px 3px;position:relative;display:flex;align-items:flex-start;justify-content:center;padding-top:8px;"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#FFFFFF;">5</span></div>
+        </div>
+        <div style="display:flex;gap:4px;margin-top:8px;">
+          <div style="width:20%;padding:0 2px;"><div style="font-size:11.5px;font-weight:600;color:#40424A;line-height:1.25;letter-spacing:-.01em;">不建议上 agent</div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#A8AAAF;margin-top:2px;">0 – 1.0</div></div>
+          <div style="width:20%;padding:0 2px;"><div style="font-size:11.5px;font-weight:600;color:#40424A;line-height:1.25;letter-spacing:-.01em;">routing</div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#A8AAAF;margin-top:2px;">1.0 – 2.0</div></div>
+          <div style="width:16%;padding:0 2px;"><div style="font-size:11.5px;font-weight:600;color:#40424A;line-height:1.25;letter-spacing:-.01em;">+HITL</div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#A8AAAF;margin-top:2px;">2.0 – 2.8</div></div>
+          <div style="width:14%;padding:0 2px;"><div style="font-size:11.5px;font-weight:600;color:#40424A;line-height:1.25;letter-spacing:-.01em;">+RAG</div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#A8AAAF;margin-top:2px;">2.8 – 3.5</div></div>
+          <div style="width:14%;padding:0 2px;"><div style="font-size:11.5px;font-weight:600;color:#40424A;line-height:1.25;letter-spacing:-.01em;">多步推理</div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#A8AAAF;margin-top:2px;">3.5 – 4.2</div></div>
+          <div style="width:16%;padding:0 2px;"><div style="font-size:11.5px;font-weight:600;color:#40424A;line-height:1.25;letter-spacing:-.01em;">复杂 agent 全栈</div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#A8AAAF;margin-top:2px;">4.2 – 5.0</div></div>
+        </div>
+
+        <div style="position:relative;margin-top:26px;height:2px;background:rgba(20,20,25,0.12);border-radius:2px;">
+          <div style="position:absolute;top:-4px;left:0%;width:1px;height:10px;background:rgba(20,20,25,0.18);"></div>
+          <div style="position:absolute;top:-4px;left:20%;width:1px;height:10px;background:rgba(20,20,25,0.18);"></div>
+          <div style="position:absolute;top:-4px;left:40%;width:1px;height:10px;background:rgba(20,20,25,0.18);"></div>
+          <div style="position:absolute;top:-4px;left:60%;width:1px;height:10px;background:rgba(20,20,25,0.18);"></div>
+          <div style="position:absolute;top:-4px;left:80%;width:1px;height:10px;background:rgba(20,20,25,0.18);"></div>
+          <div style="position:absolute;top:-4px;left:100%;width:1px;height:10px;background:rgba(20,20,25,0.18);"></div>
+
+          <div style="position:absolute;top:-3px;left:10%;">
+            <div style="position:absolute;bottom:0;left:0;width:2px;height:30px;background:#C88A16;transform:translate(-50%,0);"></div>
+            <div style="position:absolute;bottom:30px;left:0;width:12px;height:12px;border-radius:50%;background:#C88A16;border:3px solid #FFFFFF;transform:translate(-50%,50%);box-shadow:0 2px 8px rgba(20,20,30,0.15);"></div>
+            <div style="position:absolute;top:14px;left:0;transform:translateX(-14%);white-space:nowrap;text-align:center;"><div style="font-size:13px;font-weight:650;color:#191A1C;">报价生成</div><div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:600;color:#C88A16;margin-top:1px;">0.5</div></div>
+          </div>
+          <div style="position:absolute;top:-3px;left:65%;">
+            <div style="position:absolute;bottom:0;left:0;width:2px;height:30px;background:var(--accent);transform:translate(-50%,0);"></div>
+            <div style="position:absolute;bottom:30px;left:0;width:12px;height:12px;border-radius:50%;background:var(--accent);border:3px solid #FFFFFF;transform:translate(-50%,50%);box-shadow:0 2px 8px rgba(20,20,30,0.15);"></div>
+            <div style="position:absolute;top:14px;left:0;transform:translateX(-50%);white-space:nowrap;text-align:center;"><div style="font-size:13px;font-weight:650;color:#191A1C;">合同审批</div><div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:600;color:var(--accent);margin-top:1px;">3.25</div></div>
+          </div>
+          <div style="position:absolute;top:-3px;left:96%;">
+            <div style="position:absolute;bottom:0;left:0;width:2px;height:30px;background:#D8503A;transform:translate(-50%,0);"></div>
+            <div style="position:absolute;bottom:30px;left:0;width:12px;height:12px;border-radius:50%;background:#D8503A;border:3px solid #FFFFFF;transform:translate(-50%,50%);box-shadow:0 2px 8px rgba(20,20,30,0.15);"></div>
+            <div style="position:absolute;top:14px;left:0;transform:translateX(-88%);white-space:nowrap;text-align:center;"><div style="font-size:13px;font-weight:650;color:#191A1C;">合规审查</div><div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:600;color:#D8503A;margin-top:1px;">4.8</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- scenario detail cards -->
+    <div data-reveal style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;padding:24px 0 60px;">
+
+      <div style="background:#FFFFFF;border:1px solid rgba(20,20,25,0.08);border-top:3px solid #C88A16;border-radius:18px;padding:26px 24px 22px;box-shadow:0 1px 2px rgba(20,20,30,0.03),0 10px 34px rgba(20,20,30,0.04);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600;color:#C88A16;background:rgba(200,138,22,0.12);padding:2px 8px;border-radius:6px;">反例</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A8AAAF;">quote_generation</span></div>
+        <div style="font-size:19px;font-weight:700;letter-spacing:-.01em;margin:6px 0 14px;">报价生成</div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;"><span style="font-family:'JetBrains Mono',monospace;font-size:42px;font-weight:600;letter-spacing:-.03em;color:#C88A16;line-height:1;">0.5</span><span style="font-size:14px;color:#A8AAAF;">/ 5.0</span></div>
+        <div style="display:inline-block;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;background:rgba(200,138,22,0.12);color:#C88A16;margin-bottom:20px;">不建议上 agent</div>
+        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">任务不确定性</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">0/5 · w0.25</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:0%;background:linear-gradient(90deg,#C88A16,color-mix(in oklab,#C88A16,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">报价规则可穷举（产品目录+折扣规则+客户等级）</div></div>
+        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">不可逆性</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">0/5 · w0.20</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:0%;background:linear-gradient(90deg,#C88A16,color-mix(in oklab,#C88A16,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">报价是建议性质，可修改撤回</div></div>
+        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">风险等级</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">0/5 · w0.20</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:0%;background:linear-gradient(90deg,#C88A16,color-mix(in oklab,#C88A16,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">低风险，报价是内部建议不具法律约束</div></div>
+        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">异常率</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">0/5 · w0.15</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:0%;background:linear-gradient(90deg,#C88A16,color-mix(in oklab,#C88A16,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">异常极少，规则覆盖 99%+</div></div>
+        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">数据非结构化程度</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">0/5 · w0.10</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:0%;background:linear-gradient(90deg,#C88A16,color-mix(in oklab,#C88A16,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">产品目录、客户等级、折扣表全是结构化数据</div></div>
+        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">频次</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">5/5 · w0.10</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:100%;background:linear-gradient(90deg,#C88A16,color-mix(in oklab,#C88A16,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">高频，销售每天发数十份报价——高频不等于需要复杂 agent</div></div>
+      </div>
+
+      <div style="background:#FFFFFF;border:1px solid rgba(20,20,25,0.08);border-top:3px solid var(--accent);border-radius:18px;padding:26px 24px 22px;box-shadow:0 1px 2px rgba(20,20,30,0.03),0 10px 34px rgba(20,20,30,0.04);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600;color:var(--accent);background:color-mix(in oklab,var(--accent),transparent 88%);padding:2px 8px;border-radius:6px;">正例</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A8AAAF;">contract_approval</span></div>
+        <div style="font-size:19px;font-weight:700;letter-spacing:-.01em;margin:6px 0 14px;">合同审批路由</div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;"><span style="font-family:'JetBrains Mono',monospace;font-size:42px;font-weight:600;letter-spacing:-.03em;color:var(--accent);line-height:1;">3.25</span><span style="font-size:14px;color:#A8AAAF;">/ 5.0</span></div>
+        <div style="display:inline-block;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;background:color-mix(in oklab,var(--accent),transparent 88%);color:var(--accent);margin-bottom:20px;">中等 agent（routing + HITL + RAG）</div>
+        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">任务不确定性</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">2/5 · w0.25</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:40%;background:linear-gradient(90deg,var(--accent),color-mix(in oklab,var(--accent),white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">审批矩阵可查表，但关联方/条款风险需要语义判断</div></div>
+        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">不可逆性</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">4/5 · w0.20</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:80%;background:linear-gradient(90deg,var(--accent),color-mix(in oklab,var(--accent),white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">签署/大额支付不可逆</div></div>
+        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">风险等级</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">4/5 · w0.20</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:80%;background:linear-gradient(90deg,var(--accent),color-mix(in oklab,var(--accent),white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">涉及合规、财务、法律风险</div></div>
+        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">异常率</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">3/5 · w0.15</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:60%;background:linear-gradient(90deg,var(--accent),color-mix(in oklab,var(--accent),white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">约 5-10% 需要 HITL（大额/不可逆/关联方）</div></div>
+        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">数据非结构化程度</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">2/5 · w0.10</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:40%;background:linear-gradient(90deg,var(--accent),color-mix(in oklab,var(--accent),white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">结构化字段 + 自由文本条款描述</div></div>
+        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">频次</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">5/5 · w0.10</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:100%;background:linear-gradient(90deg,var(--accent),color-mix(in oklab,var(--accent),white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">每天数十到数百份合同</div></div>
+      </div>
+
+      <div style="background:#FFFFFF;border:1px solid rgba(20,20,25,0.08);border-top:3px solid #D8503A;border-radius:18px;padding:26px 24px 22px;box-shadow:0 1px 2px rgba(20,20,30,0.03),0 10px 34px rgba(20,20,30,0.04);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600;color:#D8503A;background:rgba(216,80,58,0.12);padding:2px 8px;border-radius:6px;">正例</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A8AAAF;">compliance_review</span></div>
+        <div style="font-size:19px;font-weight:700;letter-spacing:-.01em;margin:6px 0 14px;">合规审查</div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;"><span style="font-family:'JetBrains Mono',monospace;font-size:42px;font-weight:600;letter-spacing:-.03em;color:#D8503A;line-height:1;">4.8</span><span style="font-size:14px;color:#A8AAAF;">/ 5.0</span></div>
+        <div style="display:inline-block;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;background:rgba(216,80,58,0.12);color:#D8503A;margin-bottom:20px;">复杂 agent（全栈）</div>
+        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">任务不确定性</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">5/5 · w0.25</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:100%;background:linear-gradient(90deg,#D8503A,color-mix(in oklab,#D8503A,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">合规判断需要综合多部法规，无法用规则穷举</div></div>
+        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">不可逆性</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">5/5 · w0.20</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:100%;background:linear-gradient(90deg,#D8503A,color-mix(in oklab,#D8503A,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">漏审条款可能导致法律风险</div></div>
+        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">风险等级</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">5/5 · w0.20</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:100%;background:linear-gradient(90deg,#D8503A,color-mix(in oklab,#D8503A,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">直接涉及合规和法律风险</div></div>
+        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">异常率</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">5/5 · w0.15</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:100%;background:linear-gradient(90deg,#D8503A,color-mix(in oklab,#D8503A,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">法规覆盖不完整、新业务类型常见</div></div>
+        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">数据非结构化程度</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">5/5 · w0.10</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:100%;background:linear-gradient(90deg,#D8503A,color-mix(in oklab,#D8503A,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">法规是非结构化文本，材料半结构化</div></div>
+        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">频次</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">3/5 · w0.10</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:60%;background:linear-gradient(90deg,#D8503A,color-mix(in oklab,#D8503A,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">中频，每次合同或交易触发</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== MODULE 2: DASHBOARD ===== -->
+  <section id="dashboard" style="max-width:1120px;margin:0 auto;padding:0 32px;">
+    <div data-reveal style="padding:80px 0 34px;">
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;">
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:500;margin-bottom:14px;">03 — 模块二</div>
+          <h2 style="font-size:clamp(26px,3.2vw,40px);font-weight:700;letter-spacing:-.02em;margin:0;text-wrap:balance;">跨 Agent 质量仪表盘</h2>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#8A8C90;">数据源：audit_log.jsonl + test_trajectories.py · 2026-07-01</div>
+      </div>
+    </div>
+
+    <div data-reveal style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;padding-bottom:24px;">
+      <div style="background:#FFFFFF;border:1px solid rgba(20,20,25,0.08);border-radius:20px;padding:28px 28px 20px;box-shadow:0 1px 2px rgba(20,20,30,0.03),0 12px 38px rgba(20,20,30,0.05);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px;"><span style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;letter-spacing:-.01em;">contract-approval-agent</span><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--accent);background:color-mix(in oklab,var(--accent),transparent 90%);padding:3px 9px;border-radius:6px;">回测</span></div>
+        <div style="font-size:12.5px;color:#8A8C90;margin-bottom:20px;">审批路由 · routing + guardrails + HITL</div>
+        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:none;"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">任务完成率</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">43/43 passed（7 个因无 key 跳过）</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;box-shadow:0 0 0 4px rgba(46,158,91,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">100.0%</span></span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">准确率代理</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">审计日志 decision 命中预期路径</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;box-shadow:0 0 0 4px rgba(46,158,91,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">100.0%</span></span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">HITL 触发率</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">4 次人工介入</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;box-shadow:0 0 0 4px rgba(46,158,91,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">36.4%</span></span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">Guardrail 拦截率</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">4 次阻断</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#C88A16;box-shadow:0 0 0 4px rgba(200,138,22,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">36.4%</span></span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">Silent Failure</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">已按规则扫描，当前无命中</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;box-shadow:0 0 0 4px rgba(46,158,91,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">0.0%</span></span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">平均延迟</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">最大 1ms</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;box-shadow:0 0 0 4px rgba(46,158,91,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">0ms</span></span></div>
+      </div>
+
+      <div style="background:#FFFFFF;border:1px solid rgba(20,20,25,0.08);border-radius:20px;padding:28px 28px 20px;box-shadow:0 1px 2px rgba(20,20,30,0.03),0 12px 38px rgba(20,20,30,0.05);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px;"><span style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;letter-spacing:-.01em;">compliance-review-agent</span><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--accent);background:color-mix(in oklab,var(--accent),transparent 90%);padding:3px 9px;border-radius:6px;">回测</span></div>
+        <div style="font-size:12.5px;color:#8A8C90;margin-bottom:20px;">合规审查 · RAG + ReAct + HITL</div>
+        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:none;"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">任务完成率</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">40/40 passed（8 个因无 key 跳过）</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;box-shadow:0 0 0 4px rgba(46,158,91,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">100.0%</span></span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">准确率代理</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">审计日志 decision 命中预期路径</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;box-shadow:0 0 0 4px rgba(46,158,91,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">100.0%</span></span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">HITL 触发率</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">6 次人工介入</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#D8503A;box-shadow:0 0 0 4px rgba(216,80,58,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">60.0%</span></span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">Guardrail 拦截率</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">0 次阻断</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;box-shadow:0 0 0 4px rgba(46,158,91,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">0.0%</span></span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">Silent Failure</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">已按规则扫描，当前无命中</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;box-shadow:0 0 0 4px rgba(46,158,91,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">0.0%</span></span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">平均延迟</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">最大 0ms</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;box-shadow:0 0 0 4px rgba(46,158,91,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">0ms</span></span></div>
+      </div>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#A8AAAF;padding-bottom:70px;display:flex;gap:18px;flex-wrap:wrap;">
+      <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;"></span>健康</span>
+      <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:#C88A16;"></span>关注</span>
+      <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:#D8503A;"></span>需解释</span>
+    </div>
+  </section>
+
+  <!-- ===== SILENT FAILURE (dark) ===== -->
+  <section id="silent" style="background:#141518;color:#EDEDEA;">
+    <div style="max-width:1120px;margin:0 auto;padding:0 32px;">
+      <div data-reveal style="padding:96px 0 40px;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:color-mix(in oklab,var(--accent),white 30%);font-weight:500;margin-bottom:16px;">04 — 深度洞察</div>
+        <h2 style="font-size:clamp(28px,3.4vw,44px);font-weight:700;letter-spacing:-.02em;margin:0 0 18px;max-width:760px;text-wrap:balance;">Silent Failure 的两种正交模式</h2>
+        <p style="font-size:16px;line-height:1.7;color:#9E9FA6;max-width:640px;margin:0;">测试全绿不等于没有问题。真正危险的失败，是那些不报错、静默通过的——它们分成两种正交的模式。</p>
+      </div>
+
+      <div data-reveal style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:22px;padding-bottom:40px;">
+        <div style="background:#1D1E22;border:1px solid rgba(255,255,255,0.09);border-radius:22px;padding:30px 28px;">
+          <span style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#5FD08A;background:rgba(46,158,91,0.16);padding:4px 11px;border-radius:999px;margin-bottom:16px;">模式一 · 已自动检测</span>
+          <h3 style="font-size:19px;font-weight:650;margin:0 0 12px;letter-spacing:-.01em;">风险信号覆盖缺口</h3>
+          <p style="font-size:13.5px;line-height:1.75;color:#A9AAB1;margin:0 0 16px;">源数据存在关联方/担保/不可逆等结构化风险标记，但 agent 未拦截、静默放行。仪表盘用 <span style="font-family:'JetBrains Mono',monospace;color:#D6D7DC;">contracts.jsonl</span> / <span style="font-family:'JetBrains Mono',monospace;color:#D6D7DC;">materials.jsonl</span> 的结构化字段与 <span style="font-family:'JetBrains Mono',monospace;color:#D6D7DC;">audit_log</span> 的 decision 交叉比对，扫描「有风险信号 + auto_approved」的用例。</p>
+          <div style="display:flex;align-items:center;gap:10px;background:rgba(46,158,91,0.1);border:1px solid rgba(46,158,91,0.2);border-radius:12px;padding:12px 16px;">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:600;color:#5FD08A;">0</span>
+            <span style="font-size:13px;color:#8FBDA1;">当前两个 repo：0 命中</span>
+          </div>
+        </div>
+
+        <div style="background:#1D1E22;border:1px solid rgba(255,255,255,0.09);border-radius:22px;padding:30px 28px;">
+          <span style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#F08A72;background:rgba(216,80,58,0.16);padding:4px 11px;border-radius:999px;margin-bottom:16px;">模式二 · 规则扫描抓不到</span>
+          <h3 style="font-size:19px;font-weight:650;margin:0 0 12px;letter-spacing:-.01em;">置信度校准失真</h3>
+          <p style="font-size:13.5px;line-height:1.75;color:#A9AAB1;margin:0 0 18px;">数据本身没有结构化风险标记，但模型对依据不足的结论给出了虚高的置信度。问题不在字段里，在模型的自我表达上——规则扫描天然覆盖不到。</p>
+
+          <div style="border-left:2px solid color-mix(in oklab,var(--accent),white 20%);padding:12px 0 12px 16px;background:rgba(255,255,255,0.03);border-radius:0 12px 12px 0;">
+            <div style="font-size:13px;line-height:1.75;color:#C6C7CD;"><b style="color:#EDEDEA;">M013（量子计算咨询合同）</b>：法规库对该领域返回 0 结果，但初版 prompt 下 LLM 仍给出 <b style="color:#F08A72;">confidence = 0.82</b>。原因是模型把「对结论的信心」和「法规依据是否充分」混为一谈。修正 prompt 语义后重验，置信度降至 <b style="color:#5FD08A;">0.15</b>。</div>
+          </div>
+
+          <button id="m013Toggle" class="m013-btn">
+            <span id="m013Label">展开发现过程</span>
+            <span id="m013Chev" class="m013-chev">↓</span>
+          </button>
+
+          <div id="m013Panel" style="display:none;margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;color:#8A8C90;margin-bottom:16px;">CONFIDENCE · BEFORE → AFTER</div>
+            <div style="margin-bottom:16px;">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;"><span style="font-size:13px;color:#A9AAB1;">初版 prompt</span><span style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;color:#F08A72;">0.82</span></div>
+              <div style="height:9px;background:rgba(255,255,255,0.07);border-radius:99px;overflow:hidden;"><div style="height:100%;width:82%;background:linear-gradient(90deg,#D8503A,#F08A72);border-radius:99px;"></div></div>
+              <div style="font-size:11.5px;color:#8A8C90;margin-top:6px;">法规库 0 结果，仍给出虚高置信度</div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;"><span style="font-size:13px;color:#A9AAB1;">修正 prompt 语义后</span><span style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;color:#5FD08A;">0.15</span></div>
+              <div style="height:9px;background:rgba(255,255,255,0.07);border-radius:99px;overflow:hidden;"><div style="height:100%;width:15%;background:linear-gradient(90deg,#2E9E5B,#5FD08A);border-radius:99px;"></div></div>
+              <div style="font-size:11.5px;color:#8A8C90;margin-top:6px;">区分「对结论的信心」与「法规依据是否充分」后，校准恢复</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#6A6C72;padding-bottom:96px;">规则扫描覆盖模式一，模式二目前靠人工 / subagent 验证发现</div>
+    </div>
+  </section>
+
+  <!-- ===== CLOSING LOOP ===== -->
+  <section style="max-width:1120px;margin:0 auto;padding:0 32px;">
+    <div data-reveal style="padding:110px 0;text-align:center;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:500;margin-bottom:22px;">05 — 闭环</div>
+      <p style="font-size:clamp(22px,2.8vw,34px);line-height:1.5;font-weight:600;letter-spacing:-.01em;max-width:860px;margin:0 auto;text-wrap:balance;">复杂度阶梯说「合规审查需要复杂 agent」<span style="color:var(--accent);"> → </span>仪表盘显示 HITL 率 60%<span style="color:var(--accent);"> → </span>验证了这个判断。</p>
+      <p style="font-size:16px;line-height:1.7;color:#6A6C72;max-width:600px;margin:24px auto 0;">两个模块互相校验：立项时的推荐等级和运营时的实际指标应该一致。</p>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer style="border-top:1px solid rgba(20,20,25,0.1);background:#EFEEE9;">
+    <div style="max-width:1120px;margin:0 auto;padding:44px 32px;">
+      <div style="display:flex;flex-wrap:wrap;gap:24px 40px;justify-content:space-between;align-items:flex-start;">
+        <div style="display:flex;align-items:center;gap:11px;">
+          <span style="width:14px;height:14px;background:var(--accent);transform:rotate(45deg);border-radius:2px;"></span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;">agent-pm / workbench</span>
+        </div>
+        <div style="display:flex;gap:26px;flex-wrap:wrap;">
+          <a href="https://github.com/lesPrivilege/agent-quality-workbench" target="_blank" rel="noopener" style="font-size:13px;color:#40424A;text-decoration:none;border-bottom:1px solid rgba(20,20,25,0.2);padding-bottom:2px;">查看源码 ↗</a>
+          <span style="font-size:13px;color:#B0B1B6;">查看其他项目 · 即将上线</span>
+          <span style="font-size:13px;color:#B0B1B6;">联系方式 · 即将补充</span>
+        </div>
+      </div>
+      <div style="margin-top:28px;padding-top:22px;border-top:1px solid rgba(20,20,25,0.08);font-size:12px;line-height:1.9;color:#9A9CA2;">
+        静态快照 · 生成于 2026-07-01 · 数据来自 <span style="font-family:'JetBrains Mono',monospace;color:#6A6C72;">eval/metrics.py</span>、<span style="font-family:'JetBrains Mono',monospace;color:#6A6C72;">scripts/run_scorer.py</span> 的真实计算结果，非实时刷新<br>
+        本页为一次性渲染的展示层，不含新增业务逻辑；判断逻辑与阈值定义见仓库 README
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  // entrance reveal
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var reveals = Array.prototype.slice.call(document.querySelectorAll('[data-reveal]'));
+  if(!reduce && 'IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(ents){
+      ents.forEach(function(e){
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { rootMargin:'0px 0px -8% 0px', threshold:0.05 });
+    reveals.forEach(function(el){ io.observe(el); });
+  } else {
+    reveals.forEach(function(el){ el.classList.add('in'); });
+  }
+
+  // nav active-section tracking
+  var ids = ['hero','why','ladder','dashboard','silent'];
+  var links = Array.prototype.slice.call(document.querySelectorAll('.nav-link'));
+  if('IntersectionObserver' in window){
+    var navIo = new IntersectionObserver(function(ents){
+      ents.forEach(function(e){
+        if(e.isIntersecting){
+          links.forEach(function(a){ a.classList.toggle('active', a.getAttribute('data-nav') === e.target.id); });
+        }
+      });
+    }, { rootMargin:'-45% 0px -50% 0px', threshold:0 });
+    ids.forEach(function(id){ var s = document.getElementById(id); if(s) navIo.observe(s); });
+  }
+
+  // M013 expand/collapse
+  var btn = document.getElementById('m013Toggle');
+  var panel = document.getElementById('m013Panel');
+  var label = document.getElementById('m013Label');
+  var chev = document.getElementById('m013Chev');
+  var open = false;
+  btn.addEventListener('click', function(){
+    open = !open;
+    panel.style.display = open ? 'block' : 'none';
+    label.textContent = open ? '收起' : '展开发现过程';
+    chev.classList.toggle('open', open);
+  });
+})();
+</script>
+
+</body>
+</html>

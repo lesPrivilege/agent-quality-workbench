@@ -169,7 +169,7 @@ agent-quality-workbench/
 │   └── run_dashboard.py         ← 生成跨 agent 仪表盘
 ├── reports/                     ← 生成的报告
 └── docs/
-    └── dashboard.html           ← Polish 阶段静态快照，见下方说明
+    └── index.html                ← Polish 阶段静态快照（GitHub Pages 入口），见下方说明
 ```
 
 ## 已知局限
@@ -182,7 +182,11 @@ agent-quality-workbench/
 
 ## Polish：静态可视化快照
 
-`docs/dashboard.html` 是复杂度阶梯评分结果 + 质量仪表盘的单文件静态渲染（玻璃拟态 / Liquid-Glass 风格，纯手写 CSS，无框架依赖、无后端、无实时刷新）。数据直接来自本文档上面两张表和 `reports/` 下的真实计算结果，是渲染层，不含新增业务逻辑——判断逻辑和阈值定义仍以本 README 和 `eval/thresholds.yaml`、`rubric/complexity_ladder.yaml` 为准。数据变化后需要手工同步重新生成，不会自动跟随 `reports/` 更新。
+`docs/index.html` 是复杂度阶梯评分结果 + 质量仪表盘的单文件静态渲染。第一版是手写 CSS 的玻璃拟态草稿，现已替换为经过 Claude Design 重新设计的版本（编辑体 / 浅色调，Space Grotesk + JetBrains Mono，含滚动进场动效、M013 发现过程可展开面板、导航区滚动高亮）——视觉由 Design 自由发挥，内容与数字逐字保留自 `eval/metrics.py` 与 `scripts/run_scorer.py` 的真实计算结果，未做任何简化或编造。设计布局与"预留接口"（源码链接、跨项目导航位、联系方式位）的完整说明见 `working-papers/interview-prep/25-Demo3-Polish设计brief-交给ClaudeDesign.md`。
+
+页面本身仍是渲染层，不含新增业务逻辑，无后端、无实时刷新——判断逻辑和阈值定义仍以本 README 和 `eval/thresholds.yaml`、`rubric/complexity_ladder.yaml` 为准。数据变化后需要手工同步重新生成，不会自动跟随 `reports/` 更新。
+
+**GitHub Pages**：仓库已配置 `docs/` 作为 Pages 发布目录（Settings → Pages → Source: Deploy from a branch → `main` /docs），启用后可通过 `https://lesprivilege.github.io/agent-quality-workbench/` 直接访问，作为简历"查看 Demo"的活链接。
 
 讲述口径：这是"工具一次性生成的展示层"，不是前端工程能力的证明——加分点始终是指标设计和阈值判断本身。
 
