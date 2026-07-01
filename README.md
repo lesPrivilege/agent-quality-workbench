@@ -2,6 +2,14 @@
 
 PM 侧的决策与评估工具——不是第三个 agent 项目，是回答「这个场景该不该上 agent」和「agent 上线后表现如何」的两个问题。
 
+> **配套项目**：本工具的数据源来自两个 demo——`contract-approval-agent`（合同审批路由，规则+HITL）和 `compliance-review-agent`（合规审查，RAG+推理）。三个项目是一套组合拳：前两个展示不同场景的 agent 架构，本工具提供立项决策和质量评估的闭环。
+
+**🔗 在线预览：[lesprivilege.github.io/agent-quality-workbench](https://lesprivilege.github.io/agent-quality-workbench/)**
+
+![预览](docs/preview.png)
+
+> 预览图占位——把 `docs/preview.png` 换成真实截图即可：打开上面的在线预览链接，全页截图（Chrome DevTools `Cmd+Shift+P` → "Capture full size screenshot" 最省事），存成 `docs/preview.png`，替换本行图片即生效。
+
 ## 这是什么
 
 两个模块：
