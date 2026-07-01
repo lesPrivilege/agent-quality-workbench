@@ -85,15 +85,19 @@ uv run python scripts/run_scorer.py
 
 **为什么需要 silent failure 代理？** 因为 silent failure 是最危险的——agent 静默地给出了错误结果但没有任何标记。测试全绿不代表没有 silent failure。
 
-### Silent Failure 真实案例
+### Silent Failure 的两种正交模式
 
-compliance-review-agent 的 `docs/llm-verification-log.md` 记录了一次真实的 silent failure 发现：
+Silent failure 不止一种。仪表盘的规则扫描覆盖第一种，第二种目前没有自动化检测手段。
 
-> **M013（量子计算咨询合同）**：法规库对量子计算领域返回 0 结果，但 LLM 仍给出 confidence=0.82 的高置信度。原因是 prompt 中"confidence 表示你对结论的置信度"被 LLM 理解为"对'低风险'这个判断本身的把握"，而非"法规依据的充分程度"。结果：法规库明明没查到东西，置信度却很高——典型的 silent failure 信号。
+**模式一：风险信号覆盖缺口。** 源数据有关联方/担保/不可逆等结构化风险标记，但 agent 没有拦截、静默放行。仪表盘的 `Silent Failure` 指标扫描的就是这一种——拿 `contracts.jsonl`/`materials.jsonl` 的结构化字段和 `audit_log` 的 decision 交叉比对，看"有风险信号 + auto_approved"的用例数。当前两个 repo 都是 0 命中。
 
-这个案例说明了为什么需要在仪表盘中追踪 silent failure 代理：**测试不会发现这类问题，因为测试断言的是行为（是否阻断、是否触发 HITL），不是判断质量（置信度是否真实反映依据充分度）**。
+**模式二：置信度校准失真。** 数据本身没有结构化风险标记，但模型对依据不足的结论给出了虚高的置信度。compliance-review-agent 的 `docs/llm-verification-log.md` 记录了一次真实发现：
 
-后续已修复：将 prompt 改为"confidence 表示你的结论有多少法规依据支撑（1=有明确法规明文支持，0=完全没有法规覆盖）"，重验 M013 置信度从 0.82 降至 0.15。
+> **M013（量子计算咨询合同）**：法规库对量子计算领域返回 0 结果，但 LLM 仍给出 confidence=0.82 的高置信度。原因是 prompt 中"confidence 表示你对结论的置信度"被 LLM 理解为"对'低风险'这个判断本身的把握"，而非"法规依据的充分程度"。法规库明明没查到东西，置信度却很高。
+
+后续已修复 prompt 语义（"confidence 表示你的结论有多少法规依据支撑"），重验 M013 置信度从 0.82 降至 0.15。
+
+模式二规则扫描抓不到——问题不在结构化字段里，在模型的自我表达上。M013 是靠 `24-CLI委托-subagent验证LLM逻辑` 那次 subagent 验证流程人工发现的。systematic 检测需要比如「结论置信度 vs 实际法规依据数量」的交叉校验，是合理的下一步方向。
 
 ### 指标定义与阈值
 
@@ -103,7 +107,7 @@ compliance-review-agent 的 `docs/llm-verification-log.md` 记录了一次真实
 | 准确率代理 | audit_log decision 命中预期路径 | ≥90% | 75-90% | <75% | 代理指标，audit_log 的 decision 字段 |
 | HITL 触发率 | 触发 HITL 的用例/总数 | <40% | 40-60% | ≥60% | HITL 是成本，>60% 说明自动化价值低 |
 | Guardrail 拦截率 | 被拦截的用例/总数 | <30% | 30-50% | ≥50% | 拦截过高说明输入数据质量差或规则过严 |
-| Silent Failure 代理 | 已知 silent failure 数/总数 | <5% | 5-15% | ≥15% | 最危险的失败模式 |
+| Silent Failure | 风险信号覆盖缺口扫描命中数/总数 | <5% | 5-15% | ≥15% | 模式一（结构化风险标记被静默放行），模式二需人工检测 |
 | 平均延迟 | audit_log duration_ms 均值 | <500ms | 500-2000ms | ≥2000ms | 代理指标，真实成本需 token 计数 |
 
 ### 仪表盘示例输出
@@ -113,22 +117,22 @@ compliance-review-agent 的 `docs/llm-verification-log.md` 记录了一次真实
 
 | 指标 | 值 | 状态 | 说明 |
 |------|-----|------|------|
-| 任务完成率 | 100.0% 🟢 | 14/14 测试通过 |
-| 准确率代理 | 100.0% 🟢 | audit_log decision 命中预期路径 |
+| 任务完成率 | 100.0% 🟢 | 43/43 passed（7 个因无 key 跳过） |
+| 准确率代理 | 100.0% 🟢 | 审计日志 decision 命中预期路径 |
 | HITL 触发率 | 36.4% 🟢 | 4 次人工介入 |
 | Guardrail 拦截率 | 36.4% 🟡 | 4 次阻断 |
-| Silent Failure 代理 | 0.0% 🟢 |  |
+| Silent Failure | 0.0% 🟢 | 已按规则扫描，当前无命中 |
 | 平均延迟 | 0ms 🟢 | 最大 1ms |
 
 ## compliance-review-agent
 
 | 指标 | 值 | 状态 | 说明 |
 |------|-----|------|------|
-| 任务完成率 | 100.0% 🟢 | 13/13 测试通过 |
-| 准确率代理 | 100.0% 🟢 | audit_log decision 命中预期路径 |
+| 任务完成率 | 100.0% 🟢 | 40/40 passed（8 个因无 key 跳过） |
+| 准确率代理 | 100.0% 🟢 | 审计日志 decision 命中预期路径 |
 | HITL 触发率 | 60.0% 🔴 | 6 次人工介入 |
 | Guardrail 拦截率 | 0.0% 🟢 | 0 次阻断 |
-| Silent Failure 代理 | 10.0% 🟡 | M013: confidence=0.82 法规依据为零 |
+| Silent Failure | 0.0% 🟢 | 已按规则扫描，当前无命中 |
 | 平均延迟 | 0ms 🟢 | 最大 0ms |
 ```
 
@@ -172,7 +176,7 @@ agent-quality-workbench/
 2. **准确率是代理指标**——audit_log 的 decision 字段只能判断"走没走对路径"，不能判断"判断本身是否正确"。
 3. **延迟指标是 0ms**——本地运行无网络延迟，生产环境需要用 token 计数替换。
 4. **复杂度阶梯需要校准**——当前三个场景的评分边界是针对这两个 demo 调整的，换其他场景可能需要重新校准权重和阈值。
-5. **silent failure 代理只覆盖已知案例**——M013 是手动发现的，系统化的 silent failure 检测需要 ground truth 数据集。
+5. **silent failure 只覆盖「风险信号覆盖缺口」**——仪表盘的规则扫描检测的是"源数据有结构化风险标记但被静默放行"，当前两个 repo 都是 0 命中。另一类 silent failure「置信度校准失真」（M013 案例）规则扫描天然抓不到，因为问题不在结构化字段里而在模型的自我表达上，目前没有自动化检测手段，需要「置信度 vs 依据数量」交叉校验等下一步方向。
 
 ## 90 秒讲解稿骨架
 
@@ -192,11 +196,10 @@ agent-quality-workbench/
 - 红黄绿阈值，每个阈值写明理由
 - 发现：compliance-review-agent 的 HITL 率 60%（红）——与复杂度阶梯给出的"复杂 agent"等级一致
 
-[60-80s] Silent Failure 真实案例
-- M013（量子计算咨询）：法规库查不到东西，但 LLM 给了 0.82 的高置信度
-- 原因：prompt 语义混淆——"对结论的置信度"被理解为"对低风险判断的信心"
-- 修复后从 0.82 降到 0.15
-- 这个案例说明：测试全绿不代表没有 silent failure，需要运营级指标
+[60-80s] Silent Failure 两种模式
+- 模式一「风险信号覆盖缺口」：源数据有风险标记但 agent 没拦——仪表盘规则扫描已实现，当前 0 命中
+- 模式二「置信度校准失真」：M013 案例——法规库查不到东西但 LLM 给了 0.82 高置信度
+- 模式二规则扫描抓不到，是靠 subagent 验证流程人工发现的，systematic 检测是下一步方向
 
 [80-90s] 闭环
 - 复杂度阶梯说"合规审查需要复杂 agent"→仪表盘显示 HITL 率 60%→验证了这个判断
