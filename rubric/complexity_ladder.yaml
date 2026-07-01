@@ -1,0 +1,94 @@
+# Complexity Ladder Rubric
+#
+# Purpose: score a candidate use case to determine whether it warrants an agent,
+# and if so, what level of agent complexity is appropriate.
+#
+# Score range: 0-10 (mapped from weighted dimension scores)
+#   Each dimension: 0-5 points
+#   Weights sum to 1.0 → max score = 5.0
+#
+# Scoring direction: HIGHER score = MORE agent complexity needed.
+# Each dimension asks "how much does this factor push toward needing a complex agent?"
+#
+# Weights rationale:
+#   - task_determinism (0.25): primary gate — if rules can cover it, no agent needed
+#   - irreversibility (0.20): drives HITL/guardrails necessity
+#   - risk_level (0.20): complements irreversibility, drives guardrails
+#   - exception_rate (0.15): drives HITL capacity
+#   - unstructuredness (0.10): drives RAG/reasoning tool selection
+#   - frequency (0.10): ROI factor, not complexity driver
+#   Total: 1.00
+
+dimensions:
+  - name: task_determinism
+    label: 任务不确定性
+    description: "输入→输出的映射是否可以用规则穷举。0=高度确定（规则覆盖95%+），3=大部分可穷举但有边界情况，5=完全开放式（无法用规则穷举）"
+    max_score: 5
+    weight: 0.25
+    weight_reason: "核心判断维度——不确定性高→需要 LLM 语义理解→agent 复杂度上升。权重最高因为这是 agent 立项的第一道门槛"
+
+  - name: irreversibility
+    label: 不可逆性
+    description: "错误决策的代价。0=完全可逆（草稿/建议），3=部分可逆但修复成本高，5=不可逆且后果严重（签署/大额支付）"
+    max_score: 5
+    weight: 0.20
+    weight_reason: "不可逆→需要 HITL/guardrails→agent 的复杂度和价值都上升"
+
+  - name: risk_level
+    label: 风险等级
+    description: "业务风险。0=低风险（内部/建议性），3=中风险（影响业务流程），5=高风险（合规/法律/财务）"
+    max_score: 5
+    weight: 0.20
+    weight_reason: "风险等级高→guardrails 和 HITL 的必要性上升→与不可逆性互补"
+
+  - name: exception_rate
+    label: 异常率
+    description: "输入中需要人工判断的异常比例。0=几乎无异常（<1%），3=少量异常（1-10%），5=异常率高（>10%）"
+    max_score: 5
+    weight: 0.15
+    weight_reason: "异常率高→agent 需要 HITL 能力→复杂度上升"
+
+  - name: unstructuredness
+    label: 数据非结构化程度
+    description: "输入数据的非结构化程度。0=高度结构化（固定字段/表格），3=半结构化（有模板但内容自由），5=纯非结构化文本/图片"
+    max_score: 5
+    weight: 0.10
+    weight_reason: "非结构化→需要 RAG/多步推理→agent 工具选择从查表升级到语义检索"
+
+  - name: frequency
+    label: 频次
+    description: "该任务的执行频率。0=低频（<10次/月），3=中频（10-100次/月），5=高频（>100次/月）"
+    max_score: 5
+    weight: 0.10
+    weight_reason: "高频才有自动化的 ROI，但频次本身不决定复杂度。权重最低"
+
+complexity_levels:
+  - level: 0
+    label: "不建议上 agent"
+    range: [0.0, 1.0]
+    recommendation: "用规则引擎或脚本即可，agent 增加的成本和风险不值得"
+
+  - level: 1
+    label: "简单 agent（routing）"
+    range: [1.0, 2.0]
+    recommendation: "规则优先路由 + 基础 guardrails"
+
+  - level: 2
+    label: "简单 agent（routing + HITL）"
+    range: [2.0, 2.8]
+    recommendation: "规则路由 + guardrails + 关键节点 HITL"
+
+  - level: 3
+    label: "中等 agent（routing + HITL + RAG）"
+    range: [2.8, 3.5]
+    recommendation: "路由 + guardrails + HITL + 知识检索"
+
+  - level: 4
+    label: "中等 agent（多步推理）"
+    range: [3.5, 4.2]
+    recommendation: "多步推理 + 工具调用 + HITL + guardrails"
+
+  - level: 5
+    label: "复杂 agent（全栈）"
+    range: [4.2, 5.01]
+    recommendation: "多步推理 + 工具调用 + HITL + guardrails + RAG + 自主决策"
