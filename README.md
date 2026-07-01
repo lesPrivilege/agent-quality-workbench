@@ -167,7 +167,9 @@ agent-quality-workbench/
 ├── scripts/
 │   ├── run_scorer.py            ← 跑 3 个场景评分
 │   └── run_dashboard.py         ← 生成跨 agent 仪表盘
-└── reports/                     ← 生成的报告
+├── reports/                     ← 生成的报告
+└── docs/
+    └── dashboard.html           ← Polish 阶段静态快照，见下方说明
 ```
 
 ## 已知局限
@@ -177,6 +179,12 @@ agent-quality-workbench/
 3. **延迟指标是 0ms**——本地运行无网络延迟，生产环境需要用 token 计数替换。
 4. **复杂度阶梯需要校准**——当前三个场景的评分边界是针对这两个 demo 调整的，换其他场景可能需要重新校准权重和阈值。
 5. **silent failure 只覆盖「风险信号覆盖缺口」**——仪表盘的规则扫描检测的是"源数据有结构化风险标记但被静默放行"，当前两个 repo 都是 0 命中。另一类 silent failure「置信度校准失真」（M013 案例）规则扫描天然抓不到，因为问题不在结构化字段里而在模型的自我表达上，目前没有自动化检测手段，需要「置信度 vs 依据数量」交叉校验等下一步方向。
+
+## Polish：静态可视化快照
+
+`docs/dashboard.html` 是复杂度阶梯评分结果 + 质量仪表盘的单文件静态渲染（玻璃拟态 / Liquid-Glass 风格，纯手写 CSS，无框架依赖、无后端、无实时刷新）。数据直接来自本文档上面两张表和 `reports/` 下的真实计算结果，是渲染层，不含新增业务逻辑——判断逻辑和阈值定义仍以本 README 和 `eval/thresholds.yaml`、`rubric/complexity_ladder.yaml` 为准。数据变化后需要手工同步重新生成，不会自动跟随 `reports/` 更新。
+
+讲述口径：这是"工具一次性生成的展示层"，不是前端工程能力的证明——加分点始终是指标设计和阈值判断本身。
 
 ## 90 秒讲解稿骨架
 
