@@ -14,6 +14,14 @@ VERTICALS_DIR = Path(__file__).parent.parent / "verticals"
 HISTORY_PATH = Path(__file__).parent.parent / "reports" / "history.jsonl"
 CASE_HISTORY_PATH = Path(__file__).parent.parent / "reports" / "case_history.jsonl"
 
+VALID_FAILURE_MODES = frozenset({
+    "routing_error",
+    "guardrail_gap",
+    "over_escalation",
+    "silent_failure",
+    "calibration",
+})
+
 
 @dataclass
 class AgentMetrics:
@@ -70,6 +78,14 @@ def load_agents() -> list[dict]:
                 with open(gs_path, encoding="utf-8") as f:
                     gs = yaml.safe_load(f)
                 cases = gs.get("cases", [])
+                # Validate failure_mode enum
+                for c in cases:
+                    fm = c.get("failure_mode", "")
+                    if fm not in VALID_FAILURE_MODES:
+                        raise ValueError(
+                            f"goldset {gs_path}: case {c.get('id')} 有非法 failure_mode '{fm}'，"
+                            f"合法值: {sorted(VALID_FAILURE_MODES)}"
+                        )
                 a["_goldset"] = {c["id"]: c for c in cases}
                 # Also populate expected_routes from goldset for backward compat
                 a["expected_routes"] = {c["id"]: c["expected_route"] for c in cases}
