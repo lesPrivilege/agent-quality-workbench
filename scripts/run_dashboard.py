@@ -13,8 +13,10 @@ from eval.metrics import (
     load_previous_history,
     load_thresholds,
     parse_agent_audit,
+    render_markdown,
     save_history,
 )
+from eval.snapshot import build_snapshot
 
 REPORTS_DIR = Path(__file__).parent.parent / "reports"
 
@@ -35,18 +37,31 @@ def main():
     date_str = datetime.now().strftime("%Y-%m-%d")
     previous = load_previous_history(date_str)
 
-    dashboard = generate_dashboard(metrics_list, thresholds, agents, previous)
+    # Build snapshot (compute layer)
+    snapshot = build_snapshot(metrics_list, thresholds, agents, previous)
+
+    # Render markdown (render layer)
+    md_output = render_markdown(snapshot)
 
     # Save current run to history
     save_history(metrics_list)
 
     date_str_file = datetime.now().strftime("%Y%m%d")
-    out_path = REPORTS_DIR / f"dashboard_{date_str_file}.md"
-    with open(out_path, "w", encoding="utf-8") as f:
-        f.write(dashboard)
 
-    print(dashboard)
-    print(f"\n仪表盘已写入: {out_path}")
+    # Save JSON snapshot
+    import json
+    json_path = REPORTS_DIR / f"dashboard_{date_str_file}.json"
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(snapshot, f, ensure_ascii=False, indent=2)
+
+    # Save markdown
+    md_path = REPORTS_DIR / f"dashboard_{date_str_file}.md"
+    with open(md_path, "w", encoding="utf-8") as f:
+        f.write(md_output)
+
+    print(md_output)
+    print(f"\n仪表盘已写入: {md_path}")
+    print(f"快照 JSON 已写入: {json_path}")
 
 
 if __name__ == "__main__":

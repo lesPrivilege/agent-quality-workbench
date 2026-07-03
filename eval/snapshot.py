@@ -1,0 +1,134 @@
+"""Snapshot builder — compute layer for dashboard data.
+
+Produces a JSON-serializable dict from AgentMetrics + config.
+No emoji, no markdown — semantic values only. Rendering happens in render_markdown().
+"""
+
+from __future__ import annotations
+
+from datetime import datetime
+
+from eval.metric_registry import METRIC_REGISTRY, MetricEntry
+from eval.metrics import AgentMetrics
+
+
+def _threshold_status(value: float, metric_cfg: dict) -> str:
+    """Return semantic status: green | yellow | red."""
+    g_lo, g_hi = metric_cfg["green"]
+    y_lo, y_hi = metric_cfg["yellow"]
+    if g_lo <= value <= g_hi:
+        return "green"
+    elif y_lo <= value <= y_hi:
+        return "yellow"
+    return "red"
+
+
+def _trend_semantic(current: float, previous: float | None, entry: MetricEntry) -> str:
+    """Return semantic trend: up | down | flat | none."""
+    if previous is None:
+        return "none"
+    diff = current - previous
+    if abs(diff) < 0.001:
+        return "flat"
+    if entry.lower_is_better:
+        return "down" if diff < 0 else "up"
+    return "up" if diff > 0 else "down"
+
+
+def build_snapshot(
+    metrics_list: list[AgentMetrics],
+    thresholds: dict,
+    agent_cfgs: list[dict] | None = None,
+    previous: dict | None = None,
+) -> dict:
+    """Build a complete dashboard snapshot as a JSON-serializable dict.
+
+    Iterates METRIC_REGISTRY to produce metric rows — no hardcoded metric list.
+
+    Returns:
+        dict with keys: date, agents (list of agent snapshots)
+    """
+    cfg_map = {}
+    if agent_cfgs:
+        for cfg in agent_cfgs:
+            cfg_map[cfg["name"]] = cfg
+
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    t = thresholds["metrics"]
+    agents = []
+
+    for m in metrics_list:
+        overrides = {}
+        vertical = None
+        if m.name in cfg_map:
+            overrides = cfg_map[m.name].get("thresholds_override", {})
+            vertical = cfg_map[m.name].get("vertical")
+
+        prev_metrics = previous.get(m.name) if previous else None
+
+        def _get_cfg(thresholds_key: str) -> dict:
+            return overrides.get(thresholds_key, t[thresholds_key])
+
+        def _threshold_source(thresholds_key: str) -> str:
+            return "agent" if thresholds_key in overrides else "global"
+
+        metrics = []
+        for entry in METRIC_REGISTRY:
+            # Error check (e.g. pytest failed)
+            if entry.is_error(m):
+                metric_dict = {
+                    "key": entry.key,
+                    "value": None,
+                    "status": "error",
+                    "trend": "none",
+                    "threshold_source": _threshold_source(entry.thresholds_key),
+                    "note": entry.error_note(m),
+                }
+            else:
+                value = entry.compute(m)
+                cfg = _get_cfg(entry.thresholds_key)
+                if entry.uncalibrated:
+                    status = "uncalibrated"
+                elif value is None:
+                    status = "error"
+                else:
+                    status = _threshold_status(value, cfg)
+
+                prev_val = prev_metrics.get(entry.key) if prev_metrics else None
+                trend = _trend_semantic(value or 0, prev_val, entry)
+
+                metric_dict = {
+                    "key": entry.key,
+                    "value": value,
+                    "status": status,
+                    "trend": trend,
+                    "threshold_source": _threshold_source(entry.thresholds_key),
+                }
+                if entry.note:
+                    metric_dict["note"] = entry.note(m)
+
+            # Accuracy mismatch detail
+            if entry.key == "accuracy_proxy":
+                metric_dict["mismatched"] = m.details.get("routing_mismatched", [])
+
+            # Latency extra field
+            if entry.key == "avg_latency_ms":
+                metric_dict["max_ms"] = m.max_latency_ms
+
+            metrics.append(metric_dict)
+
+        agents.append({
+            "name": m.name,
+            "vertical": vertical,
+            "metrics": metrics,
+            "unmapped_decisions": m.details.get("unmapped_decisions", []),
+            "meta": {
+                "total_cases": m.total_cases,
+                "total_audit_entries": m.total_audit_entries,
+                "passed_tests": m.passed_tests,
+                "total_tests": m.total_tests,
+                "skipped_tests": m.skipped_tests,
+            },
+        })
+
+    return {"date": date_str, "agents": agents}

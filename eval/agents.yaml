@@ -10,6 +10,14 @@ agents:
     repo: ~/Projects/contract-approval-agent
     id_field: contract_id
     source_data: contracts.jsonl
+    field_map:
+      case_id: contract_id
+      duration_ms: duration_ms
+    route_map:
+      auto_approved: auto
+      approved: hitl
+      rejected: hitl
+      blocked: block
     expected_routes:
       C001: auto
       C002: hitl
@@ -31,6 +39,14 @@ agents:
     repo: ~/Projects/compliance-review-agent
     id_field: material_id
     source_data: materials.jsonl
+    field_map:
+      case_id: material_id
+      duration_ms: duration_ms
+    route_map:
+      auto_approved: auto
+      approved: hitl
+      rejected: hitl
+      blocked: block
     expected_routes:
       M001: auto
       M002: hitl
