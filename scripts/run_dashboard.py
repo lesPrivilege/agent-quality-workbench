@@ -10,8 +10,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from eval.metrics import (
     generate_dashboard,
     load_agents,
+    load_previous_history,
     load_thresholds,
     parse_agent_audit,
+    save_history,
 )
 
 REPORTS_DIR = Path(__file__).parent.parent / "reports"
@@ -28,10 +30,18 @@ def main():
         m = parse_agent_audit(agent_cfg)
         metrics_list.append(m)
 
-    dashboard = generate_dashboard(metrics_list, thresholds, agents)
+    # Load previous history for trend arrows
+    from datetime import datetime
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    previous = load_previous_history(date_str)
 
-    date_str = datetime.now().strftime("%Y%m%d")
-    out_path = REPORTS_DIR / f"dashboard_{date_str}.md"
+    dashboard = generate_dashboard(metrics_list, thresholds, agents, previous)
+
+    # Save current run to history
+    save_history(metrics_list)
+
+    date_str_file = datetime.now().strftime("%Y%m%d")
+    out_path = REPORTS_DIR / f"dashboard_{date_str_file}.md"
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(dashboard)
 

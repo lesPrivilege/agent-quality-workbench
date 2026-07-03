@@ -10,6 +10,7 @@ import yaml
 
 THRESHOLDS_PATH = Path(__file__).parent / "thresholds.yaml"
 AGENTS_PATH = Path(__file__).parent / "agents.yaml"
+HISTORY_PATH = Path(__file__).parent.parent / "reports" / "history.jsonl"
 CONTRACT_REPO = Path.home() / "Projects" / "contract-approval-agent"
 COMPLIANCE_REPO = Path.home() / "Projects" / "compliance-review-agent"
 
@@ -89,6 +90,73 @@ def evaluate_rule(rule: dict, record: dict) -> bool:
         return isinstance(value, (int, float)) and value < rule["lt"]
 
     return False
+
+
+def save_history(metrics_list: list[AgentMetrics]) -> None:
+    """Append a history record to reports/history.jsonl."""
+    from datetime import datetime
+
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    record = {"date": date_str, "agents": {}}
+    for m in metrics_list:
+        record["agents"][m.name] = {
+            "task_completion_rate": m.task_completion_rate,
+            "accuracy_proxy": m.accuracy_proxy,
+            "hitl_trigger_rate": m.hitl_trigger_rate,
+            "guardrail_block_rate": m.guardrail_block_rate,
+            "silent_failure_rate": m.silent_failure_rate,
+            "avg_latency_ms": m.avg_latency_ms,
+        }
+    HISTORY_PATH.parent.mkdir(exist_ok=True)
+    with open(HISTORY_PATH, "a", encoding="utf-8") as f:
+        import json
+        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
+def load_previous_history(current_date: str) -> dict | None:
+    """Load the most recent history entry before the current run.
+
+    Called before save_history, so the last entry in the file is from the
+    previous run. Returns dict of {agent_name: {metric: value}} or None.
+    """
+    if not HISTORY_PATH.exists():
+        return None
+
+    import json
+    entries = []
+    with open(HISTORY_PATH, encoding="utf-8") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            entries.append(json.loads(line))
+
+    if not entries:
+        return None
+
+    # The last entry is from the previous run (current run not yet saved)
+    return entries[-1]["agents"]
+
+
+def _trend_arrow(current: float, previous: float | None, metric_key: str) -> str:
+    """Return trend arrow for a metric compared to previous value.
+
+    For 'lower is better' metrics (silent_failure_rate, hitl_trigger_rate, etc.),
+    ↓ is good and ↑ is bad. For 'higher is better' metrics (task_completion_rate,
+    accuracy_proxy), ↑ is good and ↓ is bad.
+
+    Returns: ↑, ↓, →, or - (no previous data).
+    """
+    if previous is None:
+        return "-"
+    diff = current - previous
+    if abs(diff) < 0.001:
+        return "→"
+    # Metrics where lower is better
+    lower_is_better = {"hitl_trigger_rate", "guardrail_block_rate", "silent_failure_rate", "avg_latency_ms"}
+    if metric_key in lower_is_better:
+        return "↓" if diff < 0 else "↑"
+    else:
+        return "↑" if diff > 0 else "↓"
 
 
 def _threshold_label(value: float, metric_cfg: dict) -> str:
@@ -521,13 +589,14 @@ def parse_agent_audit(agent_cfg: dict) -> AgentMetrics:
     return m
 
 
-def generate_dashboard(metrics_list: list[AgentMetrics], thresholds: dict, agent_cfgs: list[dict] | None = None) -> str:
+def generate_dashboard(metrics_list: list[AgentMetrics], thresholds: dict, agent_cfgs: list[dict] | None = None, previous: dict | None = None) -> str:
     """Generate markdown dashboard report.
 
     Args:
         metrics_list: list of parsed agent metrics
         thresholds: global thresholds dict from thresholds.yaml
         agent_cfgs: optional list of agent configs (for per-agent threshold overrides)
+        previous: optional previous history data for trend arrows
     """
     from datetime import datetime
 
@@ -541,13 +610,14 @@ def generate_dashboard(metrics_list: list[AgentMetrics], thresholds: dict, agent
 
     for m in metrics_list:
         lines.append(f"## {m.name}\n")
-        lines.append(f"| 指标 | 值 | 状态 | 说明 |")
-        lines.append(f"|------|-----|------|------|")
+        lines.append(f"| 指标 | 值 | 状态 | 趋势 | 说明 |")
+        lines.append(f"|------|-----|------|------|------|")
 
         t = thresholds["metrics"]
         overrides = {}
         if m.name in cfg_map:
             overrides = cfg_map[m.name].get("thresholds_override", {})
+        prev_metrics = previous.get(m.name) if previous else None
 
         def _get_cfg(metric_key: str) -> dict:
             return overrides.get(metric_key, t[metric_key])
@@ -555,46 +625,56 @@ def generate_dashboard(metrics_list: list[AgentMetrics], thresholds: dict, agent
         def _is_override(metric_key: str) -> bool:
             return metric_key in overrides
 
+        def _trend(metric_key: str, value: float) -> str:
+            prev_val = prev_metrics.get(metric_key) if prev_metrics else None
+            return _trend_arrow(value, prev_val, metric_key)
+
         # Task completion
         cfg = _get_cfg("task_completion_rate")
         status = _threshold_label(m.task_completion_rate, cfg)
+        trend = _trend("task_completion_rate", m.task_completion_rate)
         skip_note = f"（{m.skipped_tests} 个因无 key 跳过）" if m.skipped_tests > 0 else ""
         if m.pytest_error:
-            lines.append(f"| 任务完成率 | — | ⚠️ | pytest 未能执行: {m.pytest_error} |")
+            lines.append(f"| 任务完成率 | — | ⚠️ | — | pytest 未能执行: {m.pytest_error} |")
         else:
-            lines.append(f"| 任务完成率 | {m.task_completion_rate:.1%} | {status} | {m.passed_tests}/{m.total_tests} passed{skip_note} |")
+            lines.append(f"| 任务完成率 | {m.task_completion_rate:.1%} | {status} | {trend} | {m.passed_tests}/{m.total_tests} passed{skip_note} |")
 
         # Accuracy proxy (routing accuracy)
         cfg = _get_cfg("accuracy_proxy")
         status = _threshold_label(m.accuracy_proxy, cfg)
+        trend = _trend("accuracy_proxy", m.accuracy_proxy)
         note = "路由准确率（期望 vs 实际）"
         mismatched = m.details.get("routing_mismatched", [])
         if mismatched:
             mismatch_str = ", ".join(f"{d['case_id']}: 期望 {d['expected']} → 实际 {d['actual'] or '无'}" for d in mismatched)
             note += f"；不匹配: {mismatch_str}"
         override_note = "（agent 阈值）" if _is_override("accuracy_proxy") else ""
-        lines.append(f"| 准确率代理 | {m.accuracy_proxy:.1%} | {status} | {note}{override_note} |")
+        lines.append(f"| 准确率代理 | {m.accuracy_proxy:.1%} | {status} | {trend} | {note}{override_note} |")
 
         # HITL rate
         cfg = _get_cfg("hitl_trigger_rate")
         status = _threshold_label(m.hitl_trigger_rate, cfg)
+        trend = _trend("hitl_trigger_rate", m.hitl_trigger_rate)
         override_note = "（agent 阈值）" if _is_override("hitl_trigger_rate") else ""
-        lines.append(f"| HITL 触发率 | {m.hitl_trigger_rate:.1%} | {status} | {m.hitl_count} 次人工介入{override_note} |")
+        lines.append(f"| HITL 触发率 | {m.hitl_trigger_rate:.1%} | {status} | {trend} | {m.hitl_count} 次人工介入{override_note} |")
 
         # Guardrail block rate
         cfg = _get_cfg("guardrail_block_rate")
         status = _threshold_label(m.guardrail_block_rate, cfg)
+        trend = _trend("guardrail_block_rate", m.guardrail_block_rate)
         override_note = "（agent 阈值）" if _is_override("guardrail_block_rate") else ""
-        lines.append(f"| Guardrail 拦截率 | {m.guardrail_block_rate:.1%} | {status} | {m.blocked_count} 次阻断{override_note} |")
+        lines.append(f"| Guardrail 拦截率 | {m.guardrail_block_rate:.1%} | {status} | {trend} | {m.blocked_count} 次阻断{override_note} |")
 
         # Silent failure
         cfg = _get_cfg("silent_failure_rate")
         status = _threshold_label(m.silent_failure_rate, cfg)
+        trend = _trend("silent_failure_rate", m.silent_failure_rate)
         sf_note = m.details.get("silent_failure_note", "未扫描")
-        lines.append(f"| Silent Failure | {m.silent_failure_rate:.1%} | {status} | {sf_note} |")
+        lines.append(f"| Silent Failure | {m.silent_failure_rate:.1%} | {status} | {trend} | {sf_note} |")
 
         # Latency (P1-4: placeholder — demo data uncalibrated)
-        lines.append(f"| 平均延迟 | {m.avg_latency_ms:.0f}ms | ⚪ | 未校准：demo 数据，生产环境需替换为 token 计数 |")
+        trend = _trend("avg_latency_ms", m.avg_latency_ms)
+        lines.append(f"| 平均延迟 | {m.avg_latency_ms:.0f}ms | ⚪ | {trend} | 未校准：demo 数据，生产环境需替换为 token 计数 |")
 
         lines.append("")
 
