@@ -239,8 +239,8 @@ METRIC_REGISTRY: list[MetricEntry] = [
         thresholds_key="step_efficiency",
         compute=_step_efficiency,
         dimension="cost",
-        note=_step_efficiency_note,
         uncalibrated=True,
+        note=_step_efficiency_note,
     ),
     MetricEntry(
         key="tool_arg_correctness",
@@ -248,7 +248,7 @@ METRIC_REGISTRY: list[MetricEntry] = [
         thresholds_key="tool_arg_correctness",
         compute=_tool_arg_correctness,
         dimension="accuracy",
-        note=_tool_arg_note,
         uncalibrated=True,
+        note=_tool_arg_note,
     ),
 ]

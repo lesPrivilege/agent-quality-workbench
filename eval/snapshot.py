@@ -103,7 +103,7 @@ def build_snapshot(
             else:
                 value = entry.compute(m)
                 cfg = _get_cfg(entry.thresholds_key)
-                if entry.uncalibrated:
+                if entry.uncalibrated and value is None:
                     status = "uncalibrated"
                 elif value is None:
                     status = "error"
