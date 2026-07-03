@@ -209,6 +209,8 @@
       </div>
     </div>
 
+    <div data-reveal style="font-size:12.5px;line-height:1.7;color:#8A8C90;margin:-28px 0 32px;max-width:760px;">垂类 profile（legal-compliance）下为 4.9 / 3.2 / 0.25——权重覆盖会移动分数，这正是 profile 机制的目的。</div>
+
     <!-- scenario detail cards (data-driven) -->
     <div data-reveal id="scenario-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;padding:24px 0 60px;">
     </div>
@@ -235,6 +237,7 @@
       <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;"></span>健康</span>
       <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:#C88A16;"></span>关注</span>
       <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:#D8503A;"></span>需解释</span>
+      <span>另有三项 trace 级指标（路由稳定性 / 步骤效率 / 工具参数正确率）依赖 trace_log，当前未校准，不在本页展示。</span>
     </div>
   </section>
 
@@ -243,8 +246,8 @@
     <div style="max-width:1120px;margin:0 auto;padding:0 32px;">
       <div data-reveal style="padding:96px 0 40px;">
         <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:color-mix(in oklab,var(--accent),white 30%);font-weight:500;margin-bottom:16px;">04 — 深度洞察</div>
-        <h2 style="font-size:clamp(28px,3.4vw,44px);font-weight:700;letter-spacing:-.02em;margin:0 0 18px;max-width:760px;text-wrap:balance;">Silent Failure 的两种正交模式</h2>
-        <p style="font-size:16px;line-height:1.7;color:#9E9FA6;max-width:640px;margin:0;">测试全绿不等于没有问题。真正危险的失败，是那些不报错、静默通过的——它们分成两种正交的模式。</p>
+        <h2 style="font-size:clamp(28px,3.4vw,44px);font-weight:700;letter-spacing:-.02em;margin:0 0 18px;max-width:760px;text-wrap:balance;">Silent Failure 的三种模式</h2>
+        <p style="font-size:16px;line-height:1.7;color:#9E9FA6;max-width:640px;margin:0;">测试全绿不等于没有问题。真正危险的失败，是那些不报错、静默通过的——这里展示已实现的结构化扫描与后续要进入 eval 的两类失效。</p>
       </div>
 
       <div data-reveal style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:22px;padding-bottom:40px;">
@@ -286,8 +289,14 @@
             </div>
           </div>
         </div>
+
+        <div style="background:#1D1E22;border:1px solid rgba(255,255,255,0.09);border-radius:22px;padding:30px 28px;">
+          <span style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#CBB7FF;background:rgba(116,92,210,0.18);padding:4px 11px;border-radius:999px;margin-bottom:16px;">模式三 · 后续 eval</span>
+          <h3 style="font-size:19px;font-weight:650;margin:0 0 12px;letter-spacing:-.01em;">依据时效失效</h3>
+          <p style="font-size:13.5px;line-height:1.75;color:#A9AAB1;margin:0;">法规已废止但 agent 继续引用，也是一种 silent failure：模型看似有依据，但依据已经失效。后续应把 freshness 做进知识库版本、guardrail 和回归样例。</p>
+        </div>
       </div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#6A6C72;padding-bottom:96px;">规则扫描覆盖模式一，模式二目前靠人工 / subagent 验证发现</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#6A6C72;padding-bottom:96px;">规则扫描覆盖模式一；模式二和模式三是下一步 eval / guardrail 扩展方向</div>
     </div>
   </section>
 
@@ -295,7 +304,7 @@
   <section style="max-width:1120px;margin:0 auto;padding:0 32px;">
     <div data-reveal style="padding:110px 0;text-align:center;">
       <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:500;margin-bottom:22px;">05 — 闭环</div>
-      <p style="font-size:clamp(22px,2.8vw,34px);line-height:1.5;font-weight:600;letter-spacing:-.01em;max-width:860px;margin:0 auto;text-wrap:balance;">复杂度阶梯说「合规审查需要复杂 agent」<span style="color:var(--accent);"> → </span>仪表盘显示 HITL 率 60%<span style="color:var(--accent);"> → </span>验证了这个判断。</p>
+      <p style="font-size:clamp(22px,2.8vw,34px);line-height:1.5;font-weight:600;letter-spacing:-.01em;max-width:860px;margin:0 auto;text-wrap:balance;">复杂度阶梯说「合规审查需要复杂 agent」<span style="color:var(--accent);"> → </span>仪表盘显示 HITL 率 60%<span style="color:var(--accent);"> → </span>验证了这个判断（合规垂类 preset 下 60% 为绿灯水位）。</p>
       <p style="font-size:16px;line-height:1.7;color:#6A6C72;max-width:600px;margin:24px auto 0;">两个模块互相校验：立项时的推荐等级和运营时的实际指标应该一致。</p>
     </div>
   </section>
@@ -502,16 +511,16 @@
             "key": "task_completion_rate",
             "value": 1.0,
             "status": "green",
-            "trend": "none",
+            "trend": "flat",
             "dimension": "accuracy",
             "threshold_source": "global",
-            "note": "43/43 passed（7 个因无 key 跳过）"
+            "note": "44/44 passed（8 个因无 key 跳过）"
           },
           {
             "key": "accuracy_proxy",
             "value": 1.0,
             "status": "green",
-            "trend": "none",
+            "trend": "flat",
             "dimension": "accuracy",
             "threshold_source": "global",
             "note": "路由准确率（期望 vs 实际）",
@@ -521,7 +530,7 @@
             "key": "hitl_trigger_rate",
             "value": 0.36363636363636365,
             "status": "green",
-            "trend": "none",
+            "trend": "flat",
             "dimension": "cost",
             "threshold_source": "vertical",
             "note": "4 次人工介入"
@@ -530,7 +539,7 @@
             "key": "guardrail_block_rate",
             "value": 0.36363636363636365,
             "status": "yellow",
-            "trend": "none",
+            "trend": "flat",
             "dimension": "security",
             "threshold_source": "global",
             "note": "4 次阻断"
@@ -539,7 +548,7 @@
             "key": "silent_failure_rate",
             "value": 0.0,
             "status": "green",
-            "trend": "none",
+            "trend": "flat",
             "dimension": "security",
             "threshold_source": "global",
             "note": "已按规则扫描，当前无命中"
@@ -548,7 +557,7 @@
             "key": "avg_latency_ms",
             "value": 1.0,
             "status": "uncalibrated",
-            "trend": "none",
+            "trend": "flat",
             "dimension": "latency",
             "threshold_source": "global",
             "note": "未校准：demo 数据，生产环境需替换为 token 计数",
@@ -561,7 +570,7 @@
             "trend": "none",
             "dimension": "stability",
             "threshold_source": "global",
-            "note": "k=5，窗口=1 次运行；demo agent 恒为 100%，接入 LLM agent 后生效"
+            "note": "k=5，窗口=2 次运行；demo agent 恒为 100%，接入 LLM agent 后生效"
           },
           {
             "key": "step_efficiency",
@@ -622,10 +631,10 @@
         },
         "meta": {
           "total_cases": 11,
-          "total_audit_entries": 7358,
-          "passed_tests": 43,
-          "total_tests": 43,
-          "skipped_tests": 7
+          "total_audit_entries": 8055,
+          "passed_tests": 44,
+          "total_tests": 44,
+          "skipped_tests": 8
         }
       },
       {
@@ -636,7 +645,7 @@
             "key": "task_completion_rate",
             "value": 1.0,
             "status": "green",
-            "trend": "none",
+            "trend": "flat",
             "dimension": "accuracy",
             "threshold_source": "global",
             "note": "40/40 passed（8 个因无 key 跳过）"
@@ -645,7 +654,7 @@
             "key": "accuracy_proxy",
             "value": 1.0,
             "status": "green",
-            "trend": "none",
+            "trend": "flat",
             "dimension": "accuracy",
             "threshold_source": "global",
             "note": "路由准确率（期望 vs 实际）",
@@ -655,7 +664,7 @@
             "key": "hitl_trigger_rate",
             "value": 0.6,
             "status": "green",
-            "trend": "none",
+            "trend": "flat",
             "dimension": "cost",
             "threshold_source": "vertical",
             "note": "6 次人工介入"
@@ -664,7 +673,7 @@
             "key": "guardrail_block_rate",
             "value": 0.0,
             "status": "green",
-            "trend": "none",
+            "trend": "flat",
             "dimension": "security",
             "threshold_source": "global",
             "note": "0 次阻断"
@@ -673,16 +682,16 @@
             "key": "silent_failure_rate",
             "value": 0.0,
             "status": "green",
-            "trend": "none",
+            "trend": "flat",
             "dimension": "security",
             "threshold_source": "global",
             "note": "已按规则扫描，当前无命中"
           },
           {
             "key": "avg_latency_ms",
-            "value": 1.2105263157894737,
+            "value": 1.1818181818181819,
             "status": "uncalibrated",
-            "trend": "none",
+            "trend": "down",
             "dimension": "latency",
             "threshold_source": "global",
             "note": "未校准：demo 数据，生产环境需替换为 token 计数",
@@ -695,7 +704,7 @@
             "trend": "none",
             "dimension": "stability",
             "threshold_source": "global",
-            "note": "k=5，窗口=1 次运行；demo agent 恒为 100%，接入 LLM agent 后生效"
+            "note": "k=5，窗口=2 次运行；demo agent 恒为 100%，接入 LLM agent 后生效"
           },
           {
             "key": "step_efficiency",
@@ -753,7 +762,7 @@
         },
         "meta": {
           "total_cases": 10,
-          "total_audit_entries": 3425,
+          "total_audit_entries": 3885,
           "passed_tests": 40,
           "total_tests": 40,
           "skipped_tests": 8
@@ -950,6 +959,27 @@
           "guardrail_block_rate": 0.0,
           "silent_failure_rate": 0.0,
           "avg_latency_ms": 1.2105263157894737
+        }
+      }
+    },
+    {
+      "date": "2026-07-03",
+      "agents": {
+        "contract-approval-agent": {
+          "task_completion_rate": 1.0,
+          "accuracy_proxy": 1.0,
+          "hitl_trigger_rate": 0.36363636363636365,
+          "guardrail_block_rate": 0.36363636363636365,
+          "silent_failure_rate": 0.0,
+          "avg_latency_ms": 1.0
+        },
+        "compliance-review-agent": {
+          "task_completion_rate": 1.0,
+          "accuracy_proxy": 1.0,
+          "hitl_trigger_rate": 0.6,
+          "guardrail_block_rate": 0.0,
+          "silent_failure_rate": 0.0,
+          "avg_latency_ms": 1.1818181818181819
         }
       }
     }
