@@ -10,12 +10,34 @@ import yaml
 
 RUBRIC_PATH = Path(__file__).parent.parent / "rubric" / "complexity_ladder.yaml"
 SCENARIOS_DIR = Path(__file__).parent.parent / "scenarios"
+VERTICALS_DIR = Path(__file__).parent.parent / "verticals"
 REPORTS_DIR = Path(__file__).parent.parent / "reports"
 
 
-def load_rubric() -> dict:
+def load_rubric(profile_name: str | None = None) -> dict:
+    """Load rubric, optionally applying a vertical profile's weight overrides."""
     with open(RUBRIC_PATH, encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        rubric = yaml.safe_load(f)
+
+    if profile_name:
+        profile_path = VERTICALS_DIR / profile_name / "profile.yaml"
+        if not profile_path.exists():
+            print(f"未找到垂类 profile: {profile_name}", file=sys.stderr)
+            sys.exit(1)
+        with open(profile_path, encoding="utf-8") as f:
+            profile = yaml.safe_load(f)
+        overrides = profile.get("rubric_overrides", {}).get("weights", {})
+        if overrides:
+            for dim in rubric["dimensions"]:
+                if dim["name"] in overrides:
+                    dim["weight"] = overrides[dim["name"]]
+            # Validate weights sum to 1.0
+            total = sum(d["weight"] for d in rubric["dimensions"])
+            if abs(total - 1.0) > 0.001:
+                print(f"错误：profile '{profile_name}' 的 rubric weights 之和为 {total}，应为 1.0", file=sys.stderr)
+                sys.exit(1)
+
+    return rubric
 
 
 def load_scenarios(name: str | None = None) -> list[dict]:
@@ -86,9 +108,10 @@ def score_scenario(rubric: dict, scenario: dict) -> dict:
 def main():
     parser = argparse.ArgumentParser(description="复杂度阶梯评分")
     parser.add_argument("--scenario", help="只跑指定场景（场景名）")
+    parser.add_argument("--profile", help="应用垂类 profile（覆盖 rubric 权重）")
     args = parser.parse_args()
 
-    rubric = load_rubric()
+    rubric = load_rubric(args.profile)
     scenarios = load_scenarios(args.scenario)
 
     if not scenarios:
@@ -107,6 +130,8 @@ def main():
     # Print summary
     print("=" * 70)
     print("复杂度阶梯评分结果")
+    if args.profile:
+        print(f"垂类 profile: {args.profile}")
     print("=" * 70)
     for r in results:
         print(f"\n## {r['scenario']}")

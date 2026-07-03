@@ -10,6 +10,7 @@ import yaml
 
 THRESHOLDS_PATH = Path(__file__).parent / "thresholds.yaml"
 AGENTS_PATH = Path(__file__).parent / "agents.yaml"
+VERTICALS_DIR = Path(__file__).parent.parent / "verticals"
 HISTORY_PATH = Path(__file__).parent.parent / "reports" / "history.jsonl"
 
 
@@ -52,13 +53,51 @@ def load_thresholds() -> dict:
 
 
 def load_agents() -> list[dict]:
-    """Load agent registrations from agents.yaml."""
+    """Load agent registrations from agents.yaml, resolving vertical templates."""
     with open(AGENTS_PATH, encoding="utf-8") as f:
         data = yaml.safe_load(f)
     agents = data.get("agents", [])
     for a in agents:
         a["repo"] = Path(a["repo"]).expanduser()
+        # Load vertical profile if specified
+        vertical_name = a.get("vertical")
+        if vertical_name:
+            profile_path = VERTICALS_DIR / vertical_name / "profile.yaml"
+            if profile_path.exists():
+                with open(profile_path, encoding="utf-8") as f:
+                    a["_profile"] = yaml.safe_load(f)
+                _resolve_template_refs(a)
     return agents
+
+
+def _resolve_template_refs(agent_cfg: dict) -> None:
+    """Resolve {template: name} references in risk_rules using vertical profile."""
+    profile = agent_cfg.get("_profile", {})
+    templates = profile.get("risk_rule_templates", {})
+    if not templates:
+        return
+    rules = agent_cfg.get("risk_rules", [])
+    resolved = []
+    for rule in rules:
+        if "template" in rule:
+            tpl_name = rule["template"]
+            if tpl_name in templates:
+                resolved.append(templates[tpl_name])
+            else:
+                # Keep as-is with warning note
+                resolved.append(rule)
+        else:
+            resolved.append(rule)
+    agent_cfg["risk_rules"] = resolved
+
+
+def load_vertical_profile(name: str) -> dict | None:
+    """Load a vertical profile by name."""
+    profile_path = VERTICALS_DIR / name / "profile.yaml"
+    if not profile_path.exists():
+        return None
+    with open(profile_path, encoding="utf-8") as f:
+        return yaml.safe_load(f)
 
 
 def _get_nested(data: dict, path: str):
@@ -447,7 +486,12 @@ def render_markdown(snapshot: dict) -> str:
 
             # Threshold source annotation
             ts = m.get("threshold_source", "global")
-            ts_note = "（agent 阈值）" if ts == "agent" else ""
+            if ts == "agent":
+                ts_note = "（agent 阈值）"
+            elif ts == "vertical":
+                ts_note = "（垂类阈值）"
+            else:
+                ts_note = ""
 
             # Mismatch details for accuracy
             if key == "accuracy_proxy" and m.get("mismatched"):

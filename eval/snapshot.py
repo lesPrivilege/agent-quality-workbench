@@ -60,17 +60,30 @@ def build_snapshot(
     for m in metrics_list:
         overrides = {}
         vertical = None
+        vertical_presets = {}
         if m.name in cfg_map:
-            overrides = cfg_map[m.name].get("thresholds_override", {})
-            vertical = cfg_map[m.name].get("vertical")
+            agent_cfg = cfg_map[m.name]
+            overrides = agent_cfg.get("thresholds_override", {})
+            vertical = agent_cfg.get("vertical")
+            profile = agent_cfg.get("_profile", {})
+            vertical_presets = profile.get("threshold_presets", {})
 
         prev_metrics = previous.get(m.name) if previous else None
 
         def _get_cfg(thresholds_key: str) -> dict:
-            return overrides.get(thresholds_key, t[thresholds_key])
+            # Priority: agent override > vertical preset > global
+            if thresholds_key in overrides:
+                return overrides[thresholds_key]
+            if thresholds_key in vertical_presets:
+                return vertical_presets[thresholds_key]
+            return t[thresholds_key]
 
         def _threshold_source(thresholds_key: str) -> str:
-            return "agent" if thresholds_key in overrides else "global"
+            if thresholds_key in overrides:
+                return "agent"
+            if thresholds_key in vertical_presets:
+                return "vertical"
+            return "global"
 
         metrics = []
         for entry in METRIC_REGISTRY:

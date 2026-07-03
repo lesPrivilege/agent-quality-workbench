@@ -4,10 +4,14 @@
 #
 # risk_rules 是对各 agent guardrail 逻辑的镜像，存在 drift 风险。
 # 长期方向：让 agent 在 audit_log 输出 risk_signals 字段，workbench 直接消费，届时删除本节。
+#
+# risk_rules 支持 {template: name} 引用垂类 profile 中的 risk_rule_templates，
+# 与内联规则可混用。
 
 agents:
   - name: contract-approval-agent
     repo: ~/Projects/contract-approval-agent
+    vertical: legal-compliance
     id_field: contract_id
     source_data: contracts.jsonl
     field_map:
@@ -31,12 +35,13 @@ agents:
       C010: hitl
       C011: block
     risk_rules:
-      - {path: 关联方标记, equals: true}
-      - {path: 条款标记.不可逆, equals: true}
-      - {path: 条款标记.担保, equals: true}
+      - {template: related_party}
+      - {template: irreversible}
+      - {template: guarantee}
 
   - name: compliance-review-agent
     repo: ~/Projects/compliance-review-agent
+    vertical: legal-compliance
     id_field: material_id
     source_data: materials.jsonl
     field_map:
@@ -59,13 +64,7 @@ agents:
       M009: auto
       M010: hitl
     risk_rules:
-      - {path: 关联方标记, equals: true}
-      - all:
-          - {path: 涉及数据共享, equals: true}
-          - {path: 涉及受监管业务, equals: true}
-      - {path: 条款标记.担保, equals: true}
-      - all:
-          - {path: 内容摘要, contains: 反垄断}
-          - {path: 金额, gt: 3000000}
-    thresholds_override:
-      hitl_trigger_rate: {green: [0.0, 0.7], yellow: [0.7, 0.85], red: [0.85, 1.0]}
+      - {template: related_party}
+      - {template: data_share_and_regulated}
+      - {template: guarantee}
+      - {template: antitrust_high_value}

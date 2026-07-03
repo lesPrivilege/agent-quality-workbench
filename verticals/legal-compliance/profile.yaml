@@ -1,0 +1,30 @@
+# 法务合规垂类 profile
+#
+# 优先级：agent thresholds_override > vertical threshold_presets > global thresholds.yaml
+# rubric_overrides 覆盖后 weights 必须重新归一（校验和=1.0）
+
+name: legal-compliance
+label: 法务合规
+description: 合同/合规类审批场景
+
+rubric_overrides:
+  weights:
+    risk_level: 0.25         # 法务垂类风险权重高于全局默认 (0.20 → 0.25)
+    frequency: 0.05          # 频次权重降低 (0.10 → 0.05)
+    # 未列出的维度沿用全局 rubric
+
+threshold_presets:
+  hitl_trigger_rate: {green: [0.0, 0.7], yellow: [0.7, 0.85], red: [0.85, 1.0]}
+
+risk_rule_templates:
+  related_party: {path: 关联方标记, equals: true}
+  guarantee: {path: 条款标记.担保, equals: true}
+  irreversible: {path: 条款标记.不可逆, equals: true}
+  data_share_and_regulated:
+    all:
+      - {path: 涉及数据共享, equals: true}
+      - {path: 涉及受监管业务, equals: true}
+  antitrust_high_value:
+    all:
+      - {path: 内容摘要, contains: 反垄断}
+      - {path: 金额, gt: 3000000}

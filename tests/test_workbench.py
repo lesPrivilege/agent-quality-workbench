@@ -10,7 +10,9 @@ from eval.metrics import (
     _trend_arrow,
     evaluate_rule,
     generate_dashboard,
+    load_agents,
 )
+from eval.snapshot import build_snapshot, _threshold_status
 from scripts.run_scorer import load_rubric, score_scenario
 
 
@@ -267,3 +269,96 @@ class TestRubricLevels:
             _, prev_hi = levels[i]["range"]
             next_lo, _ = levels[i + 1]["range"]
             assert prev_hi == next_lo, f"Gap between level {i} and {i+1}: {prev_hi} != {next_lo}"
+
+
+# ── Profile / vertical priority ──
+
+
+class TestProfilePriority:
+    def _make_thresholds(self) -> dict:
+        return {
+            "metrics": {
+                "task_completion_rate": {"green": [0.95, 1.0], "yellow": [0.80, 0.95], "red": [0.0, 0.80]},
+                "accuracy_proxy": {"green": [0.90, 1.0], "yellow": [0.75, 0.90], "red": [0.0, 0.75]},
+                "hitl_trigger_rate": {"green": [0.0, 0.4], "yellow": [0.4, 0.6], "red": [0.6, 1.0]},
+                "guardrail_block_rate": {"green": [0.0, 0.30], "yellow": [0.30, 0.50], "red": [0.50, 1.0]},
+                "silent_failure_rate": {"green": [0.0, 0.05], "yellow": [0.05, 0.15], "red": [0.15, 1.0]},
+                "cost_latency_proxy": {"green": [0, 500], "yellow": [500, 2000], "red": [2000, 999999]},
+            }
+        }
+
+    def _make_metrics(self) -> AgentMetrics:
+        m = AgentMetrics(name="test")
+        m.task_completion_rate = 1.0
+        m.accuracy_proxy = 1.0
+        m.hitl_trigger_rate = 0.7
+        m.guardrail_block_rate = 0.0
+        m.silent_failure_rate = 0.0
+        m.avg_latency_ms = 0
+        m.passed_tests = 10
+        m.total_tests = 10
+        m.details["silent_failure_note"] = "test"
+        return m
+
+    def test_threshold_status_green(self):
+        cfg = {"green": [0.0, 0.7], "yellow": [0.7, 0.85], "red": [0.85, 1.0]}
+        assert _threshold_status(0.6, cfg) == "green"
+
+    def test_threshold_status_yellow(self):
+        cfg = {"green": [0.0, 0.7], "yellow": [0.7, 0.85], "red": [0.85, 1.0]}
+        assert _threshold_status(0.75, cfg) == "yellow"
+
+    def test_agent_override_wins_over_vertical(self):
+        thresholds = self._make_thresholds()
+        agent_cfgs = [{
+            "name": "test",
+            "vertical": "test-vertical",
+            "thresholds_override": {"hitl_trigger_rate": {"green": [0.0, 0.8], "yellow": [0.8, 0.9], "red": [0.9, 1.0]}},
+            "_profile": {"threshold_presets": {"hitl_trigger_rate": {"green": [0.0, 0.5], "yellow": [0.5, 0.7], "red": [0.7, 1.0]}}},
+        }]
+        m = self._make_metrics()
+        snapshot = build_snapshot([m], thresholds, agent_cfgs)
+        hitl = [x for x in snapshot["agents"][0]["metrics"] if x["key"] == "hitl_trigger_rate"][0]
+        assert hitl["status"] == "green"  # agent override green up to 0.8
+        assert hitl["threshold_source"] == "agent"
+
+    def test_vertical_preset_used_when_no_agent_override(self):
+        thresholds = self._make_thresholds()
+        agent_cfgs = [{
+            "name": "test",
+            "vertical": "test-vertical",
+            "_profile": {"threshold_presets": {"hitl_trigger_rate": {"green": [0.0, 0.7], "yellow": [0.7, 0.85], "red": [0.85, 1.0]}}},
+        }]
+        m = self._make_metrics()
+        snapshot = build_snapshot([m], thresholds, agent_cfgs)
+        hitl = [x for x in snapshot["agents"][0]["metrics"] if x["key"] == "hitl_trigger_rate"][0]
+        assert hitl["status"] == "green"  # vertical preset green up to 0.7
+        assert hitl["threshold_source"] == "vertical"
+
+    def test_global_used_when_no_override(self):
+        thresholds = self._make_thresholds()
+        m = self._make_metrics()
+        snapshot = build_snapshot([m], thresholds)
+        hitl = [x for x in snapshot["agents"][0]["metrics"] if x["key"] == "hitl_trigger_rate"][0]
+        assert hitl["status"] == "red"  # global red from 0.6, value 0.7
+        assert hitl["threshold_source"] == "global"
+
+    def test_load_agents_resolves_templates(self):
+        """Template refs in risk_rules should be resolved."""
+        agents = load_agents()
+        contract = [a for a in agents if a["name"] == "contract-approval-agent"][0]
+        rules = contract.get("risk_rules", [])
+        # Templates should be resolved to actual rule dicts
+        for rule in rules:
+            assert "template" not in rule, f"Unresolved template: {rule}"
+
+    def test_scorer_profile_changes_weights(self):
+        """Scorer with --profile should apply weight overrides."""
+        rubric_global = load_rubric()
+        rubric_profile = load_rubric("legal-compliance")
+        global_weights = {d["name"]: d["weight"] for d in rubric_global["dimensions"]}
+        profile_weights = {d["name"]: d["weight"] for d in rubric_profile["dimensions"]}
+        assert profile_weights["risk_level"] == 0.25
+        assert profile_weights["frequency"] == 0.05
+        assert profile_weights["risk_level"] > global_weights["risk_level"]
+        assert profile_weights["frequency"] < global_weights["frequency"]
