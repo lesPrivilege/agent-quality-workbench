@@ -222,8 +222,7 @@ METRIC_REGISTRY: list[MetricEntry] = [
         thresholds_key="cost_latency_proxy",
         compute=lambda m: m.avg_latency_ms,
         dimension="latency",
-        uncalibrated=True,
-        note=lambda m: "未校准：demo 数据，生产环境需替换为 token 计数",
+        note=lambda m: f"{m.avg_latency_ms:.0f}ms（基于 audit_log duration_ms）",
         lower_is_better=True,
     ),
     MetricEntry(

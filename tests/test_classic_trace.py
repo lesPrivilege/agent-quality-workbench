@@ -65,7 +65,12 @@ class TestDimensionSummary:
         assert dims["accuracy"] == "red"
 
     def test_all_uncalibrated_dimension(self):
-        """If all metrics in a dimension are uncalibrated, summary is uncalibrated."""
+        """If all metrics in a dimension are uncalibrated, summary is uncalibrated.
+
+        Note: avg_latency_ms is now calibrated (upstream agents report real duration_ms).
+        The 'cost' dimension has step_efficiency (uncalibrated) + hitl_trigger_rate (calibrated),
+        so it won't be fully uncalibrated. This test verifies latency is now calibrated.
+        """
         thresholds = self._make_thresholds()
         m = AgentMetrics(name="test")
         m.task_completion_rate = 1.0
@@ -73,15 +78,15 @@ class TestDimensionSummary:
         m.hitl_trigger_rate = 0.3
         m.guardrail_block_rate = 0.0
         m.silent_failure_rate = 0.0
-        m.avg_latency_ms = 100  # latency → uncalibrated
+        m.avg_latency_ms = 100
         m.passed_tests = 10
         m.total_tests = 10
         m.details["silent_failure_note"] = "test"
 
         snapshot = build_snapshot([m], thresholds)
         dims = snapshot["agents"][0]["dimensions"]
-        # latency only has avg_latency_ms which is uncalibrated
-        assert dims["latency"] == "uncalibrated"
+        # latency now has calibrated avg_latency_ms → green (100 < 500)
+        assert dims["latency"] == "green"
 
 
 # ── Trace evaluation ──

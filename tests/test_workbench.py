@@ -139,10 +139,20 @@ class TestTrendArrow:
 
 class TestRoutingAccuracy:
     def test_all_correct(self):
+        """Verify accuracy_proxy reflects 100% match between expected and actual routes."""
+        expected = {"C001": "auto", "C002": "hitl", "C003": "block"}
+        actual = {"C001": "auto", "C002": "hitl", "C003": "block"}
+        correct = sum(1 for cid, exp in expected.items() if actual.get(cid) == exp)
+        mismatched = [
+            {"case_id": cid, "expected": exp, "actual": actual.get(cid)}
+            for cid, exp in expected.items()
+            if actual.get(cid) != exp
+        ]
         m = AgentMetrics(name="test")
-        m.accuracy_proxy = 1.0
-        m.details["routing_mismatched"] = []
+        m.accuracy_proxy = correct / len(expected) if expected else 0
+        m.details["routing_mismatched"] = mismatched
         assert m.accuracy_proxy == 1.0
+        assert len(m.details["routing_mismatched"]) == 0
 
     def test_mismatch_recorded(self):
         m = AgentMetrics(name="test")
@@ -216,12 +226,15 @@ class TestDashboardColumns:
         assert "⚠️" in output
         assert "pytest 未能执行" in output
 
-    def test_latency_placeholder(self):
+    def test_latency_calibrated(self):
+        """avg_latency_ms is now calibrated — should show threshold status, not ⚪."""
         m = self._make_metrics()
         t = self._make_thresholds()
         output = generate_dashboard([m], t)
+        # avg_latency_ms=100, threshold green=[0,500] → 🟢
+        assert "🟢" in output
+        # Trace-level metrics (step_efficiency, tool_arg_correctness) still ⚪
         assert "⚪" in output
-        assert "未校准" in output
 
 
 # ── Rubric level boundaries ──
