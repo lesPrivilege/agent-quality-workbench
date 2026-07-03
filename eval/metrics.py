@@ -335,6 +335,7 @@ def parse_agent_audit(agent_cfg: dict) -> AgentMetrics:
     risk_rules = agent_cfg.get("risk_rules", [])
 
     m = AgentMetrics(name=name)
+    m.details["_agent_cfg_ref"] = agent_cfg
 
     # --- Pytest ---
     pytest_result = _run_pytest(repo_path)
@@ -515,6 +516,8 @@ def render_markdown(snapshot: dict) -> str:
         "silent_failure_rate": "Silent Failure",
         "avg_latency_ms": "平均延迟",
         "route_stability": "路由稳定性",
+        "step_efficiency": "步骤效率",
+        "tool_arg_correctness": "工具参数正确率",
     }
 
     for agent in snapshot["agents"]:
@@ -524,6 +527,19 @@ def render_markdown(snapshot: dict) -> str:
         if vertical:
             section_title += f"（{vertical}）"
         lines.append(f"## {section_title}\n")
+
+        # CLASSIC five-dimension summary
+        dims = agent.get("dimensions", {})
+        dim_order = ["cost", "latency", "accuracy", "stability", "security"]
+        dim_parts = []
+        for d in dim_order:
+            status = dims.get(d)
+            if status is None:
+                dim_parts.append(f"{d} ⚪")
+            else:
+                dim_parts.append(f"{d} {_status_emoji.get(status, '⚪')}")
+        lines.append(f"**{' | '.join(dim_parts)}**\n")
+
         lines.append(f"| 指标 | 值 | 状态 | 趋势 | 说明 |")
         lines.append(f"|------|-----|------|------|------|")
 

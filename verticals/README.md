@@ -46,3 +46,13 @@ agent thresholds_override > vertical threshold_presets > global thresholds.yaml
 ## 现有垂类
 
 - `legal-compliance`：法务合规 — 合同/合规类审批场景
+
+## 接入 trace 的三步
+
+轨迹级评估（step efficiency、tool argument correctness）需要 agent 输出步骤事件。
+
+1. **Agent 输出 `data/trace_log.jsonl`**：每行一个步骤事件，schema 见 `eval/trace.py`
+2. **（可选）配置 `trace_field_map`**：在 `agents.yaml` 的 agent 条目中映射字段名
+3. **重跑 dashboard**：步骤效率和工具参数正确率自动从 ⚪ 降级为实际值
+
+trace 数据不存在时，两个指标显示 `⚪ 无 trace 数据`，不影响其他指标。

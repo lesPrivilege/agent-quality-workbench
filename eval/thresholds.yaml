@@ -5,6 +5,15 @@
 #
 # Boundary convention: all ranges are inclusive on both ends (lo <= x <= hi).
 # Evaluation priority: green > yellow > red (first match wins).
+#
+# CLASSIC five-dimension alignment (来源: CLASSIC benchmark):
+#   cost      — HITL 触发率（人工介入是成本；缺 token 成本指标）
+#   latency   — 平均延迟（当前未校准，demo 数据无参考价值）
+#   accuracy  — 任务完成率、路由准确率
+#   stability — 路由稳定性（pass^k 代理）
+#   security  — Guardrail 拦截率、Silent Failure
+#
+# 已知缺口：cost 维度只有 HITL 代理，缺 token 成本；latency 维度未校准。
 
 metrics:
   task_completion_rate:

@@ -188,6 +188,22 @@ agent-quality-workbench/
 4. **复杂度阶梯需要校准**——当前三个场景的评分边界是针对这两个 demo 调整的，换其他场景可能需要重新校准权重和阈值。
 5. **silent failure 只覆盖「风险信号覆盖缺口」**——仪表盘的规则扫描检测的是"源数据有结构化风险标记但被静默放行"，当前两个 repo 都是 0 命中。另一类 silent failure「置信度校准失真」（M013 案例）规则扫描天然抓不到，因为问题不在结构化字段里而在模型的自我表达上，目前没有自动化检测手段，需要「置信度 vs 依据数量」交叉校验等下一步方向。
 
+## 设计对标（社区实践对齐）
+
+本工作台对标 CLASSIC benchmark 五维框架与社区 agent eval 实践，当前状态：
+
+| 维度 | 本工作台指标 | 现状 | 缺口 |
+|------|-------------|------|------|
+| **Accuracy** | 任务完成率、路由准确率 | ✅ 已实现 | — |
+| **Cost** | HITL 触发率 | ✅ 代理指标 | 缺 token 成本 |
+| **Latency** | 平均延迟 | ⚪ 未校准 | demo 数据无参考价值 |
+| **Stability** | 路由稳定性（pass^k 代理） | ✅ 已实现 | 当前恒 100%（确定性 agent），接入 LLM 后生效 |
+| **Security** | Guardrail 拦截率、Silent Failure | ✅ 已实现 | 模式二（置信度校准）需人工检测 |
+
+其他实践吸收：
+- **Gold Set**：`goldset/` 目录，21 条 case 带 failure_mode 和 source 标注，historical 占比当前 0%
+- **Trace 插槽**：`eval/trace.py` 定义 schema 契约，步骤效率/工具参数正确率两个指标预留（⚪），需 agent 输出 `trace_log.jsonl` 后生效
+
 ## Polish：静态可视化快照
 
 `docs/index.html` 是复杂度阶梯评分结果 + 质量仪表盘的单文件静态渲染。第一版是手写 CSS 的玻璃拟态草稿，现已替换为经过 Claude Design 重新设计的版本（编辑体 / 浅色调，Space Grotesk + JetBrains Mono，含滚动进场动效、M013 发现过程可展开面板、导航区滚动高亮）——视觉由 Design 自由发挥，内容与数字逐字保留自 `eval/metrics.py` 与 `scripts/run_scorer.py` 的真实计算结果，未做任何简化或编造。设计布局与"预留接口"（源码链接、跨项目导航位、联系方式位）的完整说明见 `working-papers/interview-prep/25-Demo3-Polish设计brief-交给ClaudeDesign.md`。

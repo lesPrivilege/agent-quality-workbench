@@ -96,6 +96,7 @@ def build_snapshot(
                     "value": None,
                     "status": "error",
                     "trend": "none",
+                    "dimension": entry.dimension,
                     "threshold_source": _threshold_source(entry.thresholds_key),
                     "note": entry.error_note(m),
                 }
@@ -117,6 +118,7 @@ def build_snapshot(
                     "value": value,
                     "status": status,
                     "trend": trend,
+                    "dimension": entry.dimension,
                     "threshold_source": _threshold_source(entry.thresholds_key),
                 }
                 if entry.note:
@@ -132,10 +134,20 @@ def build_snapshot(
 
             metrics.append(metric_dict)
 
+        # Dimension summary (CLASSIC five dimensions)
+        dim_worst: dict[str, str] = {}
+        _status_priority = {"error": 0, "red": 1, "yellow": 2, "green": 3, "uncalibrated": 4}
+        for m_dict in metrics:
+            dim = m_dict.get("dimension", "accuracy")
+            status = m_dict.get("status", "green")
+            if dim not in dim_worst or _status_priority.get(status, 4) < _status_priority.get(dim_worst[dim], 4):
+                dim_worst[dim] = status
+
         agents.append({
             "name": m.name,
             "vertical": vertical,
             "metrics": metrics,
+            "dimensions": dim_worst,
             "unmapped_decisions": m.details.get("unmapped_decisions", []),
             "goldset": {
                 "total": m.details.get("goldset_total", 0),

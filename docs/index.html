@@ -503,6 +503,7 @@
             "value": 1.0,
             "status": "green",
             "trend": "none",
+            "dimension": "accuracy",
             "threshold_source": "global",
             "note": "43/43 passed（7 个因无 key 跳过）"
           },
@@ -511,6 +512,7 @@
             "value": 1.0,
             "status": "green",
             "trend": "none",
+            "dimension": "accuracy",
             "threshold_source": "global",
             "note": "路由准确率（期望 vs 实际）",
             "mismatched": []
@@ -520,6 +522,7 @@
             "value": 0.36363636363636365,
             "status": "green",
             "trend": "none",
+            "dimension": "cost",
             "threshold_source": "vertical",
             "note": "4 次人工介入"
           },
@@ -528,6 +531,7 @@
             "value": 0.36363636363636365,
             "status": "yellow",
             "trend": "none",
+            "dimension": "security",
             "threshold_source": "global",
             "note": "4 次阻断"
           },
@@ -536,6 +540,7 @@
             "value": 0.0,
             "status": "green",
             "trend": "none",
+            "dimension": "security",
             "threshold_source": "global",
             "note": "已按规则扫描，当前无命中"
           },
@@ -544,11 +549,46 @@
             "value": 1.0,
             "status": "uncalibrated",
             "trend": "none",
+            "dimension": "latency",
             "threshold_source": "global",
             "note": "未校准：demo 数据，生产环境需替换为 token 计数",
             "max_ms": 1.0
+          },
+          {
+            "key": "route_stability",
+            "value": 1.0,
+            "status": "green",
+            "trend": "none",
+            "dimension": "stability",
+            "threshold_source": "global",
+            "note": "k=5，窗口=1 次运行；demo agent 恒为 100%，接入 LLM agent 后生效"
+          },
+          {
+            "key": "step_efficiency",
+            "value": null,
+            "status": "uncalibrated",
+            "trend": "none",
+            "dimension": "cost",
+            "threshold_source": "global",
+            "note": "需 agent 输出 data/trace_log.jsonl，schema 见 eval/trace.py"
+          },
+          {
+            "key": "tool_arg_correctness",
+            "value": null,
+            "status": "uncalibrated",
+            "trend": "none",
+            "dimension": "accuracy",
+            "threshold_source": "global",
+            "note": "需 agent 输出 data/trace_log.jsonl，schema 见 eval/trace.py"
           }
         ],
+        "dimensions": {
+          "accuracy": "green",
+          "cost": "green",
+          "security": "yellow",
+          "latency": "uncalibrated",
+          "stability": "green"
+        },
         "unmapped_decisions": [
           "classified",
           "found",
@@ -557,9 +597,32 @@
           "routed",
           "skipped"
         ],
+        "goldset": {
+          "total": 11,
+          "failure_modes": {
+            "routing_error": {
+              "total": 7,
+              "correct": 7
+            },
+            "guardrail_gap": {
+              "total": 4,
+              "correct": 4
+            }
+          },
+          "source": {
+            "synthetic": {
+              "total": 11,
+              "correct": 11
+            },
+            "historical": {
+              "total": 0,
+              "correct": 0
+            }
+          }
+        },
         "meta": {
           "total_cases": 11,
-          "total_audit_entries": 6223,
+          "total_audit_entries": 7358,
           "passed_tests": 43,
           "total_tests": 43,
           "skipped_tests": 7
@@ -574,6 +637,7 @@
             "value": 1.0,
             "status": "green",
             "trend": "none",
+            "dimension": "accuracy",
             "threshold_source": "global",
             "note": "40/40 passed（8 个因无 key 跳过）"
           },
@@ -582,6 +646,7 @@
             "value": 1.0,
             "status": "green",
             "trend": "none",
+            "dimension": "accuracy",
             "threshold_source": "global",
             "note": "路由准确率（期望 vs 实际）",
             "mismatched": []
@@ -591,6 +656,7 @@
             "value": 0.6,
             "status": "green",
             "trend": "none",
+            "dimension": "cost",
             "threshold_source": "vertical",
             "note": "6 次人工介入"
           },
@@ -599,6 +665,7 @@
             "value": 0.0,
             "status": "green",
             "trend": "none",
+            "dimension": "security",
             "threshold_source": "global",
             "note": "0 次阻断"
           },
@@ -607,19 +674,55 @@
             "value": 0.0,
             "status": "green",
             "trend": "none",
+            "dimension": "security",
             "threshold_source": "global",
             "note": "已按规则扫描，当前无命中"
           },
           {
             "key": "avg_latency_ms",
-            "value": 1.2666666666666666,
+            "value": 1.2105263157894737,
             "status": "uncalibrated",
             "trend": "none",
+            "dimension": "latency",
             "threshold_source": "global",
             "note": "未校准：demo 数据，生产环境需替换为 token 计数",
             "max_ms": 5.0
+          },
+          {
+            "key": "route_stability",
+            "value": 1.0,
+            "status": "green",
+            "trend": "none",
+            "dimension": "stability",
+            "threshold_source": "global",
+            "note": "k=5，窗口=1 次运行；demo agent 恒为 100%，接入 LLM agent 后生效"
+          },
+          {
+            "key": "step_efficiency",
+            "value": null,
+            "status": "uncalibrated",
+            "trend": "none",
+            "dimension": "cost",
+            "threshold_source": "global",
+            "note": "需 agent 输出 data/trace_log.jsonl，schema 见 eval/trace.py"
+          },
+          {
+            "key": "tool_arg_correctness",
+            "value": null,
+            "status": "uncalibrated",
+            "trend": "none",
+            "dimension": "accuracy",
+            "threshold_source": "global",
+            "note": "需 agent 输出 data/trace_log.jsonl，schema 见 eval/trace.py"
           }
         ],
+        "dimensions": {
+          "accuracy": "green",
+          "cost": "green",
+          "security": "green",
+          "latency": "uncalibrated",
+          "stability": "green"
+        },
         "unmapped_decisions": [
           "analyzed",
           "found",
@@ -629,9 +732,28 @@
           "missing",
           "parsed"
         ],
+        "goldset": {
+          "total": 10,
+          "failure_modes": {
+            "routing_error": {
+              "total": 10,
+              "correct": 10
+            }
+          },
+          "source": {
+            "synthetic": {
+              "total": 10,
+              "correct": 10
+            },
+            "historical": {
+              "total": 0,
+              "correct": 0
+            }
+          }
+        },
         "meta": {
           "total_cases": 10,
-          "total_audit_entries": 2850,
+          "total_audit_entries": 3425,
           "passed_tests": 40,
           "total_tests": 40,
           "skipped_tests": 8
@@ -827,7 +949,7 @@
           "hitl_trigger_rate": 0.6,
           "guardrail_block_rate": 0.0,
           "silent_failure_rate": 0.0,
-          "avg_latency_ms": 1.2666666666666666
+          "avg_latency_ms": 1.2105263157894737
         }
       }
     }

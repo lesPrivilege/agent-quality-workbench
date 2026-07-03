@@ -20,6 +20,67 @@ from eval.metrics import AgentMetrics
 CASE_HISTORY_PATH = Path(__file__).parent.parent / "reports" / "case_history.jsonl"
 STABILITY_K = 5
 
+# Trace placeholder — loads from agent's trace_log.jsonl if available
+_TRACE_CACHE: dict[str, list | None] = {}
+_TRACE_LOADED: set[str] = set()
+
+
+def _load_traces_cached(agent_name: str, agent_cfg: dict):
+    """Load traces with per-agent caching."""
+    if agent_name not in _TRACE_LOADED:
+        from eval.trace import load_traces
+        _TRACE_CACHE[agent_name] = load_traces(agent_cfg)
+        _TRACE_LOADED.add(agent_name)
+    return _TRACE_CACHE.get(agent_name)
+
+
+def _step_efficiency(m: AgentMetrics) -> float | None:
+    """Actual steps / expected max steps. None if no trace data."""
+    cfg = m.details.get("_agent_cfg_ref", {})
+    traces = _load_traces_cached(m.name, cfg)
+    if traces is None or len(traces) == 0:
+        return None
+    # Group by case_id, count steps per case
+    case_steps: dict[str, int] = {}
+    for step in traces:
+        case_steps[step.case_id] = max(case_steps.get(step.case_id, 0), step.step_idx + 1)
+    if not case_steps:
+        return None
+    # Assume expected max = 5 steps per case (configurable in future)
+    expected_max = 5
+    avg_steps = sum(case_steps.values()) / len(case_steps)
+    return min(1.0, avg_steps / expected_max)
+
+
+def _step_efficiency_note(m: AgentMetrics) -> str:
+    cfg = m.details.get("_agent_cfg_ref", {})
+    traces = _load_traces_cached(m.name, cfg)
+    if traces is None:
+        return "需 agent 输出 data/trace_log.jsonl，schema 见 eval/trace.py"
+    return f"{len(traces)} 步记录"
+
+
+def _tool_arg_correctness(m: AgentMetrics) -> float | None:
+    """args_ok=true ratio. None if no trace data."""
+    cfg = m.details.get("_agent_cfg_ref", {})
+    traces = _load_traces_cached(m.name, cfg)
+    if traces is None:
+        return None
+    tool_calls = [s for s in traces if s.action == "tool_call" and s.args_ok is not None]
+    if not tool_calls:
+        return None
+    correct = sum(1 for s in tool_calls if s.args_ok)
+    return correct / len(tool_calls)
+
+
+def _tool_arg_note(m: AgentMetrics) -> str:
+    cfg = m.details.get("_agent_cfg_ref", {})
+    traces = _load_traces_cached(m.name, cfg)
+    if traces is None:
+        return "需 agent 输出 data/trace_log.jsonl，schema 见 eval/trace.py"
+    tool_calls = [s for s in traces if s.action == "tool_call"]
+    return f"{len(tool_calls)} 次工具调用"
+
 
 @dataclass(frozen=True)
 class MetricEntry:
@@ -27,6 +88,8 @@ class MetricEntry:
     label: str
     thresholds_key: str
     compute: Callable[[AgentMetrics], float | None]
+    dimension: str = "accuracy"      # CLASSIC: cost | latency | accuracy | stability | security
+    evaluator: str = "rule"          # rule (future: llm_judge)
     uncalibrated: bool = False
     note: Callable[[AgentMetrics], str] | None = None
     is_error: Callable[[AgentMetrics], bool] = lambda m: False
@@ -113,6 +176,7 @@ METRIC_REGISTRY: list[MetricEntry] = [
         label="任务完成率",
         thresholds_key="task_completion_rate",
         compute=_task_completion,
+        dimension="accuracy",
         note=_task_completion_note,
         is_error=lambda m: m.pytest_error is not None,
         error_note=lambda m: f"pytest 未能执行: {m.pytest_error}",
@@ -122,6 +186,7 @@ METRIC_REGISTRY: list[MetricEntry] = [
         label="准确率代理",
         thresholds_key="accuracy_proxy",
         compute=lambda m: m.accuracy_proxy,
+        dimension="accuracy",
         note=lambda m: "路由准确率（期望 vs 实际）",
     ),
     MetricEntry(
@@ -129,6 +194,7 @@ METRIC_REGISTRY: list[MetricEntry] = [
         label="HITL 触发率",
         thresholds_key="hitl_trigger_rate",
         compute=lambda m: m.hitl_trigger_rate,
+        dimension="cost",
         note=lambda m: f"{m.hitl_count} 次人工介入",
         lower_is_better=True,
     ),
@@ -137,6 +203,7 @@ METRIC_REGISTRY: list[MetricEntry] = [
         label="Guardrail 拦截率",
         thresholds_key="guardrail_block_rate",
         compute=lambda m: m.guardrail_block_rate,
+        dimension="security",
         note=lambda m: f"{m.blocked_count} 次阻断",
         lower_is_better=True,
     ),
@@ -145,6 +212,7 @@ METRIC_REGISTRY: list[MetricEntry] = [
         label="Silent Failure",
         thresholds_key="silent_failure_rate",
         compute=lambda m: m.silent_failure_rate,
+        dimension="security",
         note=lambda m: m.details.get("silent_failure_note", "未扫描"),
         lower_is_better=True,
     ),
@@ -153,6 +221,7 @@ METRIC_REGISTRY: list[MetricEntry] = [
         label="平均延迟",
         thresholds_key="cost_latency_proxy",
         compute=lambda m: m.avg_latency_ms,
+        dimension="latency",
         uncalibrated=True,
         note=lambda m: "未校准：demo 数据，生产环境需替换为 token 计数",
         lower_is_better=True,
@@ -162,6 +231,25 @@ METRIC_REGISTRY: list[MetricEntry] = [
         label="路由稳定性",
         thresholds_key="route_stability",
         compute=_compute_route_stability,
+        dimension="stability",
         note=_route_stability_note,
+    ),
+    MetricEntry(
+        key="step_efficiency",
+        label="步骤效率",
+        thresholds_key="step_efficiency",
+        compute=_step_efficiency,
+        dimension="cost",
+        note=_step_efficiency_note,
+        uncalibrated=True,
+    ),
+    MetricEntry(
+        key="tool_arg_correctness",
+        label="工具参数正确率",
+        thresholds_key="tool_arg_correctness",
+        compute=_tool_arg_correctness,
+        dimension="accuracy",
+        note=_tool_arg_note,
+        uncalibrated=True,
     ),
 ]
