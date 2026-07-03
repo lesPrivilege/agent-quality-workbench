@@ -51,7 +51,7 @@ def score_scenario(rubric: dict, scenario: dict) -> dict:
     recommendation = ""
     for lvl in levels:
         lo, hi = lvl["range"]
-        if lo <= weighted_sum < hi:
+        if lo <= weighted_sum <= hi:
             level_label = lvl["label"]
             recommendation = lvl["recommendation"]
             break

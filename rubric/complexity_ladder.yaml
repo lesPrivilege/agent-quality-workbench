@@ -3,9 +3,13 @@
 # Purpose: score a candidate use case to determine whether it warrants an agent,
 # and if so, what level of agent complexity is appropriate.
 #
-# Score range: 0-10 (mapped from weighted dimension scores)
+# Score range: 0-5 (weighted sum of dimension scores)
 #   Each dimension: 0-5 points
 #   Weights sum to 1.0 → max score = 5.0
+#
+# Boundary convention:
+#   - All ranges are inclusive on both ends: lo <= x <= hi
+#   - Ranges are contiguous; each value maps to exactly one level
 #
 # Scoring direction: HIGHER score = MORE agent complexity needed.
 # Each dimension asks "how much does this factor push toward needing a complex agent?"
@@ -90,5 +94,5 @@ complexity_levels:
 
   - level: 5
     label: "复杂 agent（全栈）"
-    range: [4.2, 5.01]
+    range: [4.2, 5.0]
     recommendation: "多步推理 + 工具调用 + HITL + guardrails + RAG + 自主决策"

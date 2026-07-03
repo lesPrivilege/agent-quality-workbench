@@ -2,12 +2,15 @@
 #
 # Each metric has green/yellow/red thresholds with rationale.
 # Thresholds are calibrated to the current two demo repos.
+#
+# Boundary convention: all ranges are inclusive on both ends (lo <= x <= hi).
+# Evaluation priority: green > yellow > red (first match wins).
 
 metrics:
   task_completion_rate:
     label: 任务完成率
     description: "测试用例通过数 / 总测试用例数"
-    green: [0.95, 1.01]
+    green: [0.95, 1.0]
     yellow: [0.80, 0.95]
     red: [0.0, 0.80]
     rationale: "核心指标。>95% 说明 agent 行为可预期；<80% 说明有系统性问题"
@@ -15,7 +18,7 @@ metrics:
   accuracy_proxy:
     label: 准确率代理
     description: "audit_log 中 decision 符合预期的比例（auto_approved/blocked 命中预期路径）"
-    green: [0.90, 1.01]
+    green: [0.90, 1.0]
     yellow: [0.75, 0.90]
     red: [0.0, 0.75]
     rationale: "不是真正的准确率（没有 ground truth），但 audit_log 的 decision 字段可以作为代理——blocked 的是否真的该 blocked，auto_approved 的是否无风险"
@@ -25,7 +28,7 @@ metrics:
     description: "触发 interrupt 的用例数 / 总用例数"
     green: [0.0, 0.40]
     yellow: [0.40, 0.60]
-    red: [0.60, 1.01]
+    red: [0.60, 1.0]
     rationale: "HITL 是成本。>60% 说明 agent 把太多决策推给人类，自动化价值低；<40% 说明 agent 在合理范围内自主决策"
 
   guardrail_block_rate:
@@ -33,7 +36,7 @@ metrics:
     description: "被 guardrail 阻断的用例数 / 总用例数"
     green: [0.0, 0.30]
     yellow: [0.30, 0.50]
-    red: [0.50, 1.01]
+    red: [0.50, 1.0]
     rationale: "guardrail 拦截是预期行为，但拦截率过高说明输入数据质量差或 guardrail 规则过严"
 
   silent_failure_rate:
@@ -41,7 +44,7 @@ metrics:
     description: "audit_log 中无 guardrail 拦截且无 HITL 但事后发现有问题的用例（需要人工标注，这里用已知案例估算）"
     green: [0.0, 0.05]
     yellow: [0.05, 0.15]
-    red: [0.15, 1.01]
+    red: [0.15, 1.0]
     rationale: "silent failure 是最危险的——agent 静默地给出了错误结果但没有任何标记。compliance-review-agent 的 M013 案例（confidence 0.82 但法规依据为零）就是典型的 silent failure 信号"
 
   cost_latency_proxy:
