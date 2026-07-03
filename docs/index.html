@@ -65,7 +65,7 @@
         <div data-reveal style="font-family:'JetBrains Mono',monospace;font-size:12.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:500;margin-bottom:22px;">Agent PM · 决策与评估工作台</div>
         <h1 data-reveal style="font-size:clamp(32px,4.6vw,58px);line-height:1.08;font-weight:700;letter-spacing:-.02em;margin:0 0 24px;text-wrap:balance;">回答两个问题：<br>这个场景<span style="color:var(--accent);">该不该</span>上 agent，<br>上线后<span style="color:var(--accent);">表现如何</span>。</h1>
         <p data-reveal style="font-size:clamp(15px,1.5vw,18px);line-height:1.7;color:#5C5E63;max-width:520px;margin:0 0 40px;">PM 侧的决策与评估工具——不是第三个 agent 项目，而是评判「该不该做、做得好不好」的框架。本页是一次性渲染的展示层，不接后端、不含实时数据。</p>
-        <div data-reveal style="display:flex;flex-wrap:wrap;gap:14px 40px;">
+        <div data-reveal style="display:flex;flex-wrap:wrap;gap:14px 40px;" id="hero-stats">
           <div style="display:flex;flex-direction:column;gap:2px;">
             <div style="display:flex;align-items:baseline;gap:6px;"><span style="font-size:40px;font-weight:700;letter-spacing:-.02em;line-height:1;">6</span><span style="font-size:15px;color:#9A9CA2;font-weight:500;">维度</span></div>
             <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#8A8C90;letter-spacing:.02em;">加权评估模型</span>
@@ -209,47 +209,8 @@
       </div>
     </div>
 
-    <!-- scenario detail cards -->
-    <div data-reveal style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;padding:24px 0 60px;">
-
-      <div style="background:#FFFFFF;border:1px solid rgba(20,20,25,0.08);border-top:3px solid #C88A16;border-radius:18px;padding:26px 24px 22px;box-shadow:0 1px 2px rgba(20,20,30,0.03),0 10px 34px rgba(20,20,30,0.04);">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600;color:#C88A16;background:rgba(200,138,22,0.12);padding:2px 8px;border-radius:6px;">反例</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A8AAAF;">quote_generation</span></div>
-        <div style="font-size:19px;font-weight:700;letter-spacing:-.01em;margin:6px 0 14px;">报价生成</div>
-        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;"><span style="font-family:'JetBrains Mono',monospace;font-size:42px;font-weight:600;letter-spacing:-.03em;color:#C88A16;line-height:1;">0.5</span><span style="font-size:14px;color:#A8AAAF;">/ 5.0</span></div>
-        <div style="display:inline-block;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;background:rgba(200,138,22,0.12);color:#C88A16;margin-bottom:20px;">不建议上 agent</div>
-        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">任务不确定性</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">0/5 · w0.25</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:0%;background:linear-gradient(90deg,#C88A16,color-mix(in oklab,#C88A16,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">报价规则可穷举（产品目录+折扣规则+客户等级）</div></div>
-        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">不可逆性</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">0/5 · w0.20</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:0%;background:linear-gradient(90deg,#C88A16,color-mix(in oklab,#C88A16,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">报价是建议性质，可修改撤回</div></div>
-        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">风险等级</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">0/5 · w0.20</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:0%;background:linear-gradient(90deg,#C88A16,color-mix(in oklab,#C88A16,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">低风险，报价是内部建议不具法律约束</div></div>
-        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">异常率</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">0/5 · w0.15</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:0%;background:linear-gradient(90deg,#C88A16,color-mix(in oklab,#C88A16,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">异常极少，规则覆盖 99%+</div></div>
-        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">数据非结构化程度</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">0/5 · w0.10</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:0%;background:linear-gradient(90deg,#C88A16,color-mix(in oklab,#C88A16,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">产品目录、客户等级、折扣表全是结构化数据</div></div>
-        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">频次</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">5/5 · w0.10</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:100%;background:linear-gradient(90deg,#C88A16,color-mix(in oklab,#C88A16,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">高频，销售每天发数十份报价——高频不等于需要复杂 agent</div></div>
-      </div>
-
-      <div style="background:#FFFFFF;border:1px solid rgba(20,20,25,0.08);border-top:3px solid var(--accent);border-radius:18px;padding:26px 24px 22px;box-shadow:0 1px 2px rgba(20,20,30,0.03),0 10px 34px rgba(20,20,30,0.04);">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600;color:var(--accent);background:color-mix(in oklab,var(--accent),transparent 88%);padding:2px 8px;border-radius:6px;">正例</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A8AAAF;">contract_approval</span></div>
-        <div style="font-size:19px;font-weight:700;letter-spacing:-.01em;margin:6px 0 14px;">合同审批路由</div>
-        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;"><span style="font-family:'JetBrains Mono',monospace;font-size:42px;font-weight:600;letter-spacing:-.03em;color:var(--accent);line-height:1;">3.25</span><span style="font-size:14px;color:#A8AAAF;">/ 5.0</span></div>
-        <div style="display:inline-block;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;background:color-mix(in oklab,var(--accent),transparent 88%);color:var(--accent);margin-bottom:20px;">中等 agent（routing + HITL + RAG）</div>
-        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">任务不确定性</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">2/5 · w0.25</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:40%;background:linear-gradient(90deg,var(--accent),color-mix(in oklab,var(--accent),white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">审批矩阵可查表，但关联方/条款风险需要语义判断</div></div>
-        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">不可逆性</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">4/5 · w0.20</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:80%;background:linear-gradient(90deg,var(--accent),color-mix(in oklab,var(--accent),white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">签署/大额支付不可逆</div></div>
-        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">风险等级</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">4/5 · w0.20</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:80%;background:linear-gradient(90deg,var(--accent),color-mix(in oklab,var(--accent),white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">涉及合规、财务、法律风险</div></div>
-        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">异常率</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">3/5 · w0.15</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:60%;background:linear-gradient(90deg,var(--accent),color-mix(in oklab,var(--accent),white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">约 5-10% 需要 HITL（大额/不可逆/关联方）</div></div>
-        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">数据非结构化程度</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">2/5 · w0.10</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:40%;background:linear-gradient(90deg,var(--accent),color-mix(in oklab,var(--accent),white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">结构化字段 + 自由文本条款描述</div></div>
-        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">频次</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">5/5 · w0.10</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:100%;background:linear-gradient(90deg,var(--accent),color-mix(in oklab,var(--accent),white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">每天数十到数百份合同</div></div>
-      </div>
-
-      <div style="background:#FFFFFF;border:1px solid rgba(20,20,25,0.08);border-top:3px solid #D8503A;border-radius:18px;padding:26px 24px 22px;box-shadow:0 1px 2px rgba(20,20,30,0.03),0 10px 34px rgba(20,20,30,0.04);">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600;color:#D8503A;background:rgba(216,80,58,0.12);padding:2px 8px;border-radius:6px;">正例</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A8AAAF;">compliance_review</span></div>
-        <div style="font-size:19px;font-weight:700;letter-spacing:-.01em;margin:6px 0 14px;">合规审查</div>
-        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;"><span style="font-family:'JetBrains Mono',monospace;font-size:42px;font-weight:600;letter-spacing:-.03em;color:#D8503A;line-height:1;">4.8</span><span style="font-size:14px;color:#A8AAAF;">/ 5.0</span></div>
-        <div style="display:inline-block;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;background:rgba(216,80,58,0.12);color:#D8503A;margin-bottom:20px;">复杂 agent（全栈）</div>
-        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">任务不确定性</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">5/5 · w0.25</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:100%;background:linear-gradient(90deg,#D8503A,color-mix(in oklab,#D8503A,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">合规判断需要综合多部法规，无法用规则穷举</div></div>
-        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">不可逆性</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">5/5 · w0.20</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:100%;background:linear-gradient(90deg,#D8503A,color-mix(in oklab,#D8503A,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">漏审条款可能导致法律风险</div></div>
-        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">风险等级</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">5/5 · w0.20</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:100%;background:linear-gradient(90deg,#D8503A,color-mix(in oklab,#D8503A,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">直接涉及合规和法律风险</div></div>
-        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">异常率</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">5/5 · w0.15</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:100%;background:linear-gradient(90deg,#D8503A,color-mix(in oklab,#D8503A,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">法规覆盖不完整、新业务类型常见</div></div>
-        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">数据非结构化程度</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">5/5 · w0.10</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:100%;background:linear-gradient(90deg,#D8503A,color-mix(in oklab,#D8503A,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">法规是非结构化文本，材料半结构化</div></div>
-        <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">频次</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA2;">3/5 · w0.10</span></div><div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:60%;background:linear-gradient(90deg,#D8503A,color-mix(in oklab,#D8503A,white 42%));border-radius:99px;"></div></div><div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">中频，每次合同或交易触发</div></div>
-      </div>
+    <!-- scenario detail cards (data-driven) -->
+    <div data-reveal id="scenario-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;padding:24px 0 60px;">
     </div>
   </section>
 
@@ -265,29 +226,11 @@
       </div>
     </div>
 
-    <div data-reveal style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;padding-bottom:24px;">
-      <div style="background:#FFFFFF;border:1px solid rgba(20,20,25,0.08);border-radius:20px;padding:28px 28px 20px;box-shadow:0 1px 2px rgba(20,20,30,0.03),0 12px 38px rgba(20,20,30,0.05);">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px;"><span style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;letter-spacing:-.01em;">contract-approval-agent</span><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--accent);background:color-mix(in oklab,var(--accent),transparent 90%);padding:3px 9px;border-radius:6px;">回测</span></div>
-        <div style="font-size:12.5px;color:#8A8C90;margin-bottom:20px;">审批路由 · routing + guardrails + HITL</div>
-        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:none;"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">任务完成率</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">43/43 passed（7 个因无 key 跳过）</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;box-shadow:0 0 0 4px rgba(46,158,91,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">100.0%</span></span></div>
-        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">准确率代理</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">审计日志 decision 命中预期路径</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;box-shadow:0 0 0 4px rgba(46,158,91,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">100.0%</span></span></div>
-        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">HITL 触发率</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">4 次人工介入</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;box-shadow:0 0 0 4px rgba(46,158,91,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">36.4%</span></span></div>
-        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">Guardrail 拦截率</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">4 次阻断</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#C88A16;box-shadow:0 0 0 4px rgba(200,138,22,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">36.4%</span></span></div>
-        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">Silent Failure</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">已按规则扫描，当前无命中</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;box-shadow:0 0 0 4px rgba(46,158,91,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">0.0%</span></span></div>
-        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">平均延迟</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">最大 1ms</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;box-shadow:0 0 0 4px rgba(46,158,91,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">0ms</span></span></div>
-      </div>
+    <div data-reveal id="dashboard-date" style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#8A8C90;margin-bottom:16px;">数据源：audit_log.jsonl + pytest · 加载中…</div>
 
-      <div style="background:#FFFFFF;border:1px solid rgba(20,20,25,0.08);border-radius:20px;padding:28px 28px 20px;box-shadow:0 1px 2px rgba(20,20,30,0.03),0 12px 38px rgba(20,20,30,0.05);">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px;"><span style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;letter-spacing:-.01em;">compliance-review-agent</span><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--accent);background:color-mix(in oklab,var(--accent),transparent 90%);padding:3px 9px;border-radius:6px;">回测</span></div>
-        <div style="font-size:12.5px;color:#8A8C90;margin-bottom:20px;">合规审查 · RAG + ReAct + HITL</div>
-        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:none;"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">任务完成率</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">40/40 passed（8 个因无 key 跳过）</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;box-shadow:0 0 0 4px rgba(46,158,91,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">100.0%</span></span></div>
-        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">准确率代理</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">审计日志 decision 命中预期路径</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;box-shadow:0 0 0 4px rgba(46,158,91,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">100.0%</span></span></div>
-        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">HITL 触发率</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">6 次人工介入</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#D8503A;box-shadow:0 0 0 4px rgba(216,80,58,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">60.0%</span></span></div>
-        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">Guardrail 拦截率</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">0 次阻断</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;box-shadow:0 0 0 4px rgba(46,158,91,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">0.0%</span></span></div>
-        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">Silent Failure</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">已按规则扫描，当前无命中</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;box-shadow:0 0 0 4px rgba(46,158,91,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">0.0%</span></span></div>
-        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);"><span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">平均延迟</span><span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">最大 0ms</span><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;box-shadow:0 0 0 4px rgba(46,158,91,0.15);"></span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#191A1C;">0ms</span></span></div>
-      </div>
+    <div data-reveal id="agent-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;padding-bottom:24px;">
     </div>
+    <div id="routing-mismatch" style="padding-bottom:16px;"></div>
     <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#A8AAAF;padding-bottom:70px;display:flex;gap:18px;flex-wrap:wrap;">
       <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:#2E9E5B;"></span>健康</span>
       <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:#C88A16;"></span>关注</span>
@@ -372,7 +315,7 @@
         </div>
       </div>
       <div style="margin-top:28px;padding-top:22px;border-top:1px solid rgba(20,20,25,0.08);font-size:12px;line-height:1.9;color:#9A9CA2;">
-        静态快照 · 生成于 2026-07-01 · 数据来自 <span style="font-family:'JetBrains Mono',monospace;color:#6A6C72;">eval/metrics.py</span>、<span style="font-family:'JetBrains Mono',monospace;color:#6A6C72;">scripts/run_scorer.py</span> 的真实计算结果，非实时刷新<br>
+        数据快照 · <span id="snapshot-date">生成中…</span> · 非实时 · 数据来自 <span style="font-family:'JetBrains Mono',monospace;color:#6A6C72;">eval/metrics.py</span>、<span style="font-family:'JetBrains Mono',monospace;color:#6A6C72;">scripts/run_scorer.py</span> 的真实计算结果<br>
         本页为一次性渲染的展示层，不含新增业务逻辑；判断逻辑与阈值定义见仓库 README
       </div>
     </div>
@@ -382,7 +325,130 @@
 
 <script>
 (function(){
-  // entrance reveal
+  // === Data rendering from snapshot ===
+  var SNAP_EL = document.getElementById('snapshot');
+  if(!SNAP_EL) return;
+  var SNAP = JSON.parse(SNAP_EL.textContent);
+
+  var ACCENT = '#4b44e0';
+  var STATUS_COLORS = {green:'#2E9E5B',yellow:'#C88A16',red:'#D8503A',uncalibrated:'#8A8C90',error:'#D8503A'};
+  var TREND_ARROWS = {up:'↑',down:'↓',flat:'→',none:'-'};
+  var SCORE_COLORS = {'不建议上 agent':'#C88A16','简单 agent（routing）':ACCENT,'简单 agent（routing + HITL）':ACCENT,'中等 agent（routing + HITL + RAG）':ACCENT,'中等 agent（多步推理）':'#D8503A','复杂 agent（全栈）':'#D8503A'};
+  var DIM_LABELS = {task_determinism:'任务不确定性',irreversibility:'不可逆性',risk_level:'风险等级',exception_rate:'异常率',unstructuredness:'数据非结构化程度',frequency:'频次'};
+  var METRIC_LABELS = {task_completion_rate:'任务完成率',accuracy_proxy:'准确率代理',hitl_trigger_rate:'HITL 触发率',guardrail_block_rate:'Guardrail 拦截率',silent_failure_rate:'Silent Failure',avg_latency_ms:'平均延迟'};
+
+  function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+  // Hero stats
+  var hero = SNAP.hero;
+  if(hero){
+    var hs = document.getElementById('hero-stats');
+    if(hs){
+      var dims = hs.children[0].querySelector('span:first-child span');
+      if(dims) dims.textContent = hero.dimensions;
+      var sf = hs.children[1].querySelector('span:first-child span');
+      if(sf) sf.textContent = hero.silent_failures;
+      var ag = hs.children[2].querySelector('span:first-child span');
+      if(ag) ag.textContent = hero.agent_count;
+    }
+  }
+
+  // Complexity ladder scenario cards
+  var scores = SNAP.scores || [];
+  if(scores.length){
+    var container = document.getElementById('scenario-cards');
+    if(container){
+      var sorted = scores.slice().sort(function(a,b){return a.weighted_score - b.weighted_score;});
+      sorted.forEach(function(s){
+        var color = SCORE_COLORS[s.level] || ACCENT;
+        var tag = s.weighted_score < 2 ? '反例' : '正例';
+        var tagBg = s.weighted_score < 2 ? 'rgba(200,138,22,0.12)' : 'color-mix(in oklab,'+ACCENT+',transparent 88%)';
+        var html = '<div style="background:#FFFFFF;border:1px solid rgba(20,20,25,0.08);border-top:3px solid '+color+';border-radius:18px;padding:26px 24px 22px;box-shadow:0 1px 2px rgba(20,20,30,0.03),0 10px 34px rgba(20,20,30,0.04);">';
+        html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="font-family:JetBrains Mono,monospace;font-size:10.5px;font-weight:600;color:'+color+';background:'+tagBg+';padding:2px 8px;border-radius:6px;">'+esc(tag)+'</span><span style="font-family:JetBrains Mono,monospace;font-size:11px;color:#A8AAAF;">'+esc(s.scenario)+'</span></div>';
+        html += '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;"><span style="font-family:JetBrains Mono,monospace;font-size:42px;font-weight:600;letter-spacing:-.03em;color:'+color+';line-height:1;">'+s.weighted_score+'</span><span style="font-size:14px;color:#A8AAAF;">/ 5.0</span></div>';
+        html += '<div style="display:inline-block;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;background:'+tagBg+';color:'+color+';margin-bottom:20px;">'+esc(s.level)+'</div>';
+        (s.dimensions||[]).forEach(function(d){
+          var pct = d.max_score > 0 ? (d.raw_score/d.max_score*100) : 0;
+          html += '<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:12.5px;color:#40424A;font-weight:500;">'+esc(d.dimension)+'</span><span style="font-family:JetBrains Mono,monospace;font-size:11px;color:#9A9CA2;">'+d.raw_score+'/'+d.max_score+' · w'+d.weight+'</span></div>';
+          html += '<div style="height:6px;background:rgba(20,20,25,0.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,'+color+',color-mix(in oklab,'+color+',white 42%));border-radius:99px;"></div></div>';
+          if(d.reason) html += '<div style="font-size:11px;color:#8A8C90;line-height:1.5;margin-top:5px;">'+esc(d.reason)+'</div>';
+          html += '</div>';
+        });
+        html += '</div>';
+        container.insertAdjacentHTML('beforeend', html);
+      });
+    }
+  }
+
+  // Dashboard agent cards
+  var dash = SNAP.dashboard || {};
+  var agents = dash.agents || [];
+  if(agents.length){
+    var dd = document.getElementById('dashboard-date');
+    if(dd) dd.textContent = '数据源：audit_log.jsonl + pytest · '+dash.date;
+    var cards = document.getElementById('agent-cards');
+    var mismatchDiv = document.getElementById('routing-mismatch');
+    var allMismatched = [];
+    if(cards){
+      agents.forEach(function(agent){
+        var html = '<div style="background:#FFFFFF;border:1px solid rgba(20,20,25,0.08);border-radius:20px;padding:28px 28px 20px;box-shadow:0 1px 2px rgba(20,20,30,0.03),0 12px 38px rgba(20,20,30,0.05);">';
+        var title = agent.name;
+        if(agent.vertical) title += ' · '+agent.vertical;
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px;"><span style="font-family:JetBrains Mono,monospace;font-size:15px;font-weight:600;letter-spacing:-.01em;">'+esc(agent.name)+'</span><span style="font-family:JetBrains Mono,monospace;font-size:10.5px;color:'+ACCENT+';background:color-mix(in oklab,'+ACCENT+',transparent 90%);padding:3px 9px;border-radius:6px;">回测</span></div>';
+        if(agent.vertical) html += '<div style="font-size:12.5px;color:#8A8C90;margin-bottom:20px;">'+esc(agent.vertical)+'</div>';
+        else html += '<div style="margin-bottom:20px;"></div>';
+        (agent.metrics||[]).forEach(function(m,i){
+          var label = METRIC_LABELS[m.key] || m.key;
+          var statusColor = STATUS_COLORS[m.status] || '#8A8C90';
+          var border = i===0?'border-top:none;':'border-top:1px solid rgba(20,20,25,0.06);';
+          var valueStr = '—';
+          if(m.value!==null&&m.value!==undefined){
+            if(m.key==='avg_latency_ms') valueStr = Math.round(m.value)+'ms';
+            else valueStr = (m.value*100).toFixed(1)+'%';
+          }
+          var note = m.note || '';
+          html += '<div style="display:flex;align-items:center;gap:14px;padding:13px 0;'+border+'">';
+          html += '<span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">'+esc(label)+'</span>';
+          html += '<span style="font-size:11.5px;color:#9A9CA2;flex:1;line-height:1.4;">'+esc(note)+'</span>';
+          html += '<span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap;">';
+          html += '<span style="width:8px;height:8px;border-radius:50%;background:'+statusColor+';box-shadow:0 0 0 4px '+statusColor+'22;"></span>';
+          html += '<span style="font-family:JetBrains Mono,monospace;font-size:14px;font-weight:600;color:#191A1C;">'+esc(valueStr)+'</span>';
+          html += '</span></div>';
+          // Mismatch detail for accuracy
+          if(m.key==='accuracy_proxy' && m.mismatched && m.mismatched.length){
+            allMismatched = allMismatched.concat(m.mismatched.map(function(d){d.agent=agent.name;return d;}));
+          }
+        });
+        // Unmapped decisions
+        if(agent.unmapped_decisions && agent.unmapped_decisions.length){
+          html += '<div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(20,20,25,0.06);">';
+          html += '<span style="font-size:13.5px;color:#40424A;font-weight:500;flex:0 0 96px;">路由映射</span>';
+          html += '<span style="font-size:11.5px;color:#B0450E;flex:1;line-height:1.4;">⚠️ 未映射: '+esc(agent.unmapped_decisions.join(', '))+'</span>';
+          html += '</div>';
+        }
+        html += '</div>';
+        cards.insertAdjacentHTML('beforeend', html);
+      });
+      // Routing mismatch list
+      if(mismatchDiv && allMismatched.length){
+        var mh = '<div style="background:#FFFFFF;border:1px solid rgba(20,20,25,0.08);border-radius:16px;padding:20px 24px;margin-bottom:20px;">';
+        mh += '<div style="font-family:JetBrains Mono,monospace;font-size:12px;font-weight:600;color:#B0450E;margin-bottom:10px;">路由偏差</div>';
+        allMismatched.forEach(function(d){
+          mh += '<div style="font-size:13px;color:#40424A;line-height:1.8;">'+esc(d.agent)+' · '+esc(d.case_id)+': 期望 <b>'+esc(d.expected)+'</b> → 实际 <b>'+(d.actual?esc(d.actual):'无')+'</b></div>';
+        });
+        mh += '</div>';
+        mismatchDiv.innerHTML = mh;
+      } else if(mismatchDiv){
+        mismatchDiv.innerHTML = '<div style="font-family:JetBrains Mono,monospace;font-size:12px;color:#8A8C90;padding:8px 0;">当前无偏差</div>';
+      }
+    }
+  }
+
+  // Footer date
+  var sd = document.getElementById('snapshot-date');
+  if(sd && dash.date) sd.textContent = '生成于 '+dash.date+' · 非实时';
+
+  // === Original behaviors ===
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var reveals = Array.prototype.slice.call(document.querySelectorAll('[data-reveal]'));
   if(!reduce && 'IntersectionObserver' in window){
@@ -396,7 +462,6 @@
     reveals.forEach(function(el){ el.classList.add('in'); });
   }
 
-  // nav active-section tracking
   var ids = ['hero','why','ladder','dashboard','silent'];
   var links = Array.prototype.slice.call(document.querySelectorAll('.nav-link'));
   if('IntersectionObserver' in window){
@@ -410,20 +475,370 @@
     ids.forEach(function(id){ var s = document.getElementById(id); if(s) navIo.observe(s); });
   }
 
-  // M013 expand/collapse
   var btn = document.getElementById('m013Toggle');
   var panel = document.getElementById('m013Panel');
   var label = document.getElementById('m013Label');
   var chev = document.getElementById('m013Chev');
   var open = false;
-  btn.addEventListener('click', function(){
+  if(btn){btn.addEventListener('click', function(){
     open = !open;
     panel.style.display = open ? 'block' : 'none';
     label.textContent = open ? '收起' : '展开发现过程';
     chev.classList.toggle('open', open);
-  });
+  });}
 })();
 </script>
 
+<script type="application/json" id="snapshot">
+{
+  "dashboard": {
+    "date": "2026-07-03",
+    "agents": [
+      {
+        "name": "contract-approval-agent",
+        "vertical": "legal-compliance",
+        "metrics": [
+          {
+            "key": "task_completion_rate",
+            "value": 1.0,
+            "status": "green",
+            "trend": "none",
+            "threshold_source": "global",
+            "note": "43/43 passed（7 个因无 key 跳过）"
+          },
+          {
+            "key": "accuracy_proxy",
+            "value": 1.0,
+            "status": "green",
+            "trend": "none",
+            "threshold_source": "global",
+            "note": "路由准确率（期望 vs 实际）",
+            "mismatched": []
+          },
+          {
+            "key": "hitl_trigger_rate",
+            "value": 0.36363636363636365,
+            "status": "green",
+            "trend": "none",
+            "threshold_source": "vertical",
+            "note": "4 次人工介入"
+          },
+          {
+            "key": "guardrail_block_rate",
+            "value": 0.36363636363636365,
+            "status": "yellow",
+            "trend": "none",
+            "threshold_source": "global",
+            "note": "4 次阻断"
+          },
+          {
+            "key": "silent_failure_rate",
+            "value": 0.0,
+            "status": "green",
+            "trend": "none",
+            "threshold_source": "global",
+            "note": "已按规则扫描，当前无命中"
+          },
+          {
+            "key": "avg_latency_ms",
+            "value": 1.0,
+            "status": "uncalibrated",
+            "trend": "none",
+            "threshold_source": "global",
+            "note": "未校准：demo 数据，生产环境需替换为 token 计数",
+            "max_ms": 1.0
+          }
+        ],
+        "unmapped_decisions": [
+          "classified",
+          "found",
+          "missing",
+          "passed",
+          "routed",
+          "skipped"
+        ],
+        "meta": {
+          "total_cases": 11,
+          "total_audit_entries": 6223,
+          "passed_tests": 43,
+          "total_tests": 43,
+          "skipped_tests": 7
+        }
+      },
+      {
+        "name": "compliance-review-agent",
+        "vertical": "legal-compliance",
+        "metrics": [
+          {
+            "key": "task_completion_rate",
+            "value": 1.0,
+            "status": "green",
+            "trend": "none",
+            "threshold_source": "global",
+            "note": "40/40 passed（8 个因无 key 跳过）"
+          },
+          {
+            "key": "accuracy_proxy",
+            "value": 1.0,
+            "status": "green",
+            "trend": "none",
+            "threshold_source": "global",
+            "note": "路由准确率（期望 vs 实际）",
+            "mismatched": []
+          },
+          {
+            "key": "hitl_trigger_rate",
+            "value": 0.6,
+            "status": "green",
+            "trend": "none",
+            "threshold_source": "vertical",
+            "note": "6 次人工介入"
+          },
+          {
+            "key": "guardrail_block_rate",
+            "value": 0.0,
+            "status": "green",
+            "trend": "none",
+            "threshold_source": "global",
+            "note": "0 次阻断"
+          },
+          {
+            "key": "silent_failure_rate",
+            "value": 0.0,
+            "status": "green",
+            "trend": "none",
+            "threshold_source": "global",
+            "note": "已按规则扫描，当前无命中"
+          },
+          {
+            "key": "avg_latency_ms",
+            "value": 1.2666666666666666,
+            "status": "uncalibrated",
+            "trend": "none",
+            "threshold_source": "global",
+            "note": "未校准：demo 数据，生产环境需替换为 token 计数",
+            "max_ms": 5.0
+          }
+        ],
+        "unmapped_decisions": [
+          "analyzed",
+          "found",
+          "high",
+          "low",
+          "medium",
+          "missing",
+          "parsed"
+        ],
+        "meta": {
+          "total_cases": 10,
+          "total_audit_entries": 2850,
+          "passed_tests": 40,
+          "total_tests": 40,
+          "skipped_tests": 8
+        }
+      }
+    ]
+  },
+  "scores": [
+    {
+      "scenario": "compliance_review",
+      "weighted_score": 4.9,
+      "level": "复杂 agent（全栈）",
+      "recommendation": "多步推理 + 工具调用 + HITL + guardrails + RAG + 自主决策",
+      "dimensions": [
+        {
+          "dimension": "任务不确定性",
+          "raw_score": 5,
+          "max_score": 5,
+          "weight": 0.25,
+          "weighted": 1.25,
+          "reason": "合规判断需要综合多部法规，无法用规则穷举"
+        },
+        {
+          "dimension": "不可逆性",
+          "raw_score": 5,
+          "max_score": 5,
+          "weight": 0.2,
+          "weighted": 1.0,
+          "reason": "漏审条款可能导致法律风险"
+        },
+        {
+          "dimension": "风险等级",
+          "raw_score": 5,
+          "max_score": 5,
+          "weight": 0.25,
+          "weighted": 1.25,
+          "reason": "直接涉及合规和法律风险"
+        },
+        {
+          "dimension": "异常率",
+          "raw_score": 5,
+          "max_score": 5,
+          "weight": 0.15,
+          "weighted": 0.75,
+          "reason": "异常率高，法规覆盖不完整、新业务类型常见"
+        },
+        {
+          "dimension": "数据非结构化程度",
+          "raw_score": 5,
+          "max_score": 5,
+          "weight": 0.1,
+          "weighted": 0.5,
+          "reason": "法规是非结构化文本，材料半结构化"
+        },
+        {
+          "dimension": "频次",
+          "raw_score": 3,
+          "max_score": 5,
+          "weight": 0.05,
+          "weighted": 0.15,
+          "reason": "中频，每次合同或交易触发"
+        }
+      ]
+    },
+    {
+      "scenario": "contract_approval",
+      "weighted_score": 3.2,
+      "level": "中等 agent（routing + HITL + RAG）",
+      "recommendation": "路由 + guardrails + HITL + 知识检索",
+      "dimensions": [
+        {
+          "dimension": "任务不确定性",
+          "raw_score": 2,
+          "max_score": 5,
+          "weight": 0.25,
+          "weighted": 0.5,
+          "reason": "审批矩阵可查表，但关联方/条款风险需要语义判断"
+        },
+        {
+          "dimension": "不可逆性",
+          "raw_score": 4,
+          "max_score": 5,
+          "weight": 0.2,
+          "weighted": 0.8,
+          "reason": "签署/大额支付不可逆"
+        },
+        {
+          "dimension": "风险等级",
+          "raw_score": 4,
+          "max_score": 5,
+          "weight": 0.25,
+          "weighted": 1.0,
+          "reason": "涉及合规、财务、法律风险"
+        },
+        {
+          "dimension": "异常率",
+          "raw_score": 3,
+          "max_score": 5,
+          "weight": 0.15,
+          "weighted": 0.45,
+          "reason": "约5-10%需要HITL（大额/不可逆/关联方）"
+        },
+        {
+          "dimension": "数据非结构化程度",
+          "raw_score": 2,
+          "max_score": 5,
+          "weight": 0.1,
+          "weighted": 0.2,
+          "reason": "结构化字段+自由文本条款描述"
+        },
+        {
+          "dimension": "频次",
+          "raw_score": 5,
+          "max_score": 5,
+          "weight": 0.05,
+          "weighted": 0.25,
+          "reason": "每天数十到数百份合同"
+        }
+      ]
+    },
+    {
+      "scenario": "quote_generation",
+      "weighted_score": 0.25,
+      "level": "不建议上 agent",
+      "recommendation": "用规则引擎或脚本即可，agent 增加的成本和风险不值得",
+      "dimensions": [
+        {
+          "dimension": "任务不确定性",
+          "raw_score": 0,
+          "max_score": 5,
+          "weight": 0.25,
+          "weighted": 0.0,
+          "reason": "报价规则可穷举（产品目录+折扣规则+客户等级）"
+        },
+        {
+          "dimension": "不可逆性",
+          "raw_score": 0,
+          "max_score": 5,
+          "weight": 0.2,
+          "weighted": 0.0,
+          "reason": "报价是建议性质，可修改撤回"
+        },
+        {
+          "dimension": "风险等级",
+          "raw_score": 0,
+          "max_score": 5,
+          "weight": 0.25,
+          "weighted": 0.0,
+          "reason": "低风险，报价是内部建议不具法律约束"
+        },
+        {
+          "dimension": "异常率",
+          "raw_score": 0,
+          "max_score": 5,
+          "weight": 0.15,
+          "weighted": 0.0,
+          "reason": "异常极少，规则覆盖99%+"
+        },
+        {
+          "dimension": "数据非结构化程度",
+          "raw_score": 0,
+          "max_score": 5,
+          "weight": 0.1,
+          "weighted": 0.0,
+          "reason": "产品目录、客户等级、折扣表全是结构化数据"
+        },
+        {
+          "dimension": "频次",
+          "raw_score": 5,
+          "max_score": 5,
+          "weight": 0.05,
+          "weighted": 0.25,
+          "reason": "高频，销售每天发数十份报价"
+        }
+      ]
+    }
+  ],
+  "history": [
+    {
+      "date": "2026-07-03",
+      "agents": {
+        "contract-approval-agent": {
+          "task_completion_rate": 1.0,
+          "accuracy_proxy": 1.0,
+          "hitl_trigger_rate": 0.36363636363636365,
+          "guardrail_block_rate": 0.36363636363636365,
+          "silent_failure_rate": 0.0,
+          "avg_latency_ms": 1.0
+        },
+        "compliance-review-agent": {
+          "task_completion_rate": 1.0,
+          "accuracy_proxy": 1.0,
+          "hitl_trigger_rate": 0.6,
+          "guardrail_block_rate": 0.0,
+          "silent_failure_rate": 0.0,
+          "avg_latency_ms": 1.2666666666666666
+        }
+      }
+    }
+  ],
+  "hero": {
+    "dimensions": 6,
+    "silent_failures": 0,
+    "agent_count": 2,
+    "date": "2026-07-03"
+  }
+}
+</script>
 </body>
 </html>
