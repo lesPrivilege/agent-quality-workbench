@@ -54,3 +54,11 @@ metrics:
     yellow: [500, 2000]
     red: [2000, 999999]
     rationale: "基于当前 demo 的 audit_log duration_ms。实际生产中需要用 token 计数替换"
+
+  route_stability:
+    label: 路由稳定性
+    description: "最近 k 次运行中，actual_route 完全一致且等于 expected 的 case 比例（pass^k 代理）"
+    green: [0.95, 1.0]
+    yellow: [0.85, 0.95]
+    red: [0.0, 0.85]
+    rationale: "pass^k 代理：k 次全对才是稳定。demo agent 是确定性规则实现，此指标当前恒为 100%，其价值在于接入真实 LLM agent（非确定性）后立即生效"

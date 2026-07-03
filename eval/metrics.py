@@ -12,6 +12,7 @@ THRESHOLDS_PATH = Path(__file__).parent / "thresholds.yaml"
 AGENTS_PATH = Path(__file__).parent / "agents.yaml"
 VERTICALS_DIR = Path(__file__).parent.parent / "verticals"
 HISTORY_PATH = Path(__file__).parent.parent / "reports" / "history.jsonl"
+CASE_HISTORY_PATH = Path(__file__).parent.parent / "reports" / "case_history.jsonl"
 
 
 @dataclass
@@ -53,12 +54,25 @@ def load_thresholds() -> dict:
 
 
 def load_agents() -> list[dict]:
-    """Load agent registrations from agents.yaml, resolving vertical templates."""
+    """Load agent registrations from agents.yaml, resolving vertical templates and goldsets."""
     with open(AGENTS_PATH, encoding="utf-8") as f:
         data = yaml.safe_load(f)
     agents = data.get("agents", [])
     for a in agents:
         a["repo"] = Path(a["repo"]).expanduser()
+        # Load goldset if specified
+        goldset_path = a.get("goldset")
+        if goldset_path:
+            gs_path = Path(goldset_path)
+            if not gs_path.is_absolute():
+                gs_path = Path(__file__).parent.parent / gs_path
+            if gs_path.exists():
+                with open(gs_path, encoding="utf-8") as f:
+                    gs = yaml.safe_load(f)
+                cases = gs.get("cases", [])
+                a["_goldset"] = {c["id"]: c for c in cases}
+                # Also populate expected_routes from goldset for backward compat
+                a["expected_routes"] = {c["id"]: c["expected_route"] for c in cases}
         # Load vertical profile if specified
         vertical_name = a.get("vertical")
         if vertical_name:
@@ -392,6 +406,49 @@ def parse_agent_audit(agent_cfg: dict) -> AgentMetrics:
     m.accuracy_proxy = correct / total_expected if total_expected else 0
     m.details["routing_mismatched"] = mismatched
 
+    # --- Gold set coverage ---
+    goldset = agent_cfg.get("_goldset", {})
+    if goldset:
+        m.details["_goldset_ref"] = goldset
+    goldset = agent_cfg.get("_goldset", {})
+    if goldset:
+        # Coverage by failure_mode
+        fm_stats: dict[str, dict] = {}
+        source_stats = {"synthetic": {"total": 0, "correct": 0}, "historical": {"total": 0, "correct": 0}}
+        for cid, case in goldset.items():
+            fm = case.get("failure_mode", "routing_error")
+            src = case.get("source", "synthetic")
+            expected = case["expected_route"]
+            actual = actual_routes.get(cid)
+            hit = actual == expected
+            if fm not in fm_stats:
+                fm_stats[fm] = {"total": 0, "correct": 0}
+            fm_stats[fm]["total"] += 1
+            if hit:
+                fm_stats[fm]["correct"] += 1
+            if src in source_stats:
+                source_stats[src]["total"] += 1
+                if hit:
+                    source_stats[src]["correct"] += 1
+        m.details["goldset_failure_modes"] = fm_stats
+        m.details["goldset_source"] = source_stats
+        m.details["goldset_total"] = len(goldset)
+
+        # Save case-level history
+        from datetime import datetime
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        CASE_HISTORY_PATH.parent.mkdir(exist_ok=True)
+        with open(CASE_HISTORY_PATH, "a", encoding="utf-8") as f:
+            for cid, case in goldset.items():
+                record = {
+                    "date": date_str,
+                    "agent": name,
+                    "case_id": cid,
+                    "expected_route": case["expected_route"],
+                    "actual_route": actual_routes.get(cid),
+                }
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
     # --- Unmapped decisions warning ---
     if unmapped:
         m.details["unmapped_decisions"] = unmapped
@@ -457,6 +514,7 @@ def render_markdown(snapshot: dict) -> str:
         "guardrail_block_rate": "Guardrail 拦截率",
         "silent_failure_rate": "Silent Failure",
         "avg_latency_ms": "平均延迟",
+        "route_stability": "路由稳定性",
     }
 
     for agent in snapshot["agents"]:
@@ -510,6 +568,20 @@ def render_markdown(snapshot: dict) -> str:
         unmapped = agent.get("unmapped_decisions", [])
         if unmapped:
             lines.append(f"| 路由映射 | — | ⚠️ | — | 未映射的 decision 值: {', '.join(unmapped)}；请在 agents.yaml route_map 中补充 |")
+
+        # Gold set coverage
+        gs = agent.get("goldset", {})
+        gs_total = gs.get("total", 0)
+        if gs_total > 0:
+            fm_stats = gs.get("failure_modes", {})
+            fm_parts = []
+            for fm, stats in sorted(fm_stats.items()):
+                rate = stats["correct"] / stats["total"] if stats["total"] > 0 else 0
+                fm_parts.append(f"{fm}: {stats['correct']}/{stats['total']} ({rate:.0%})")
+            source_stats = gs.get("source", {})
+            hist = source_stats.get("historical", {})
+            hist_pct = hist.get("total", 0) / gs_total if gs_total > 0 else 0
+            lines.append(f"| Gold Set 覆盖 | {gs_total} case | — | — | {'；'.join(fm_parts)}；historical 占比: {hist_pct:.0%} |")
 
         lines.append("")
 

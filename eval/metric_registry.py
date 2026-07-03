@@ -10,10 +10,15 @@ No changes to snapshot.py, render_markdown, or run_dashboard.py needed.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable
 
 from eval.metrics import AgentMetrics
+
+CASE_HISTORY_PATH = Path(__file__).parent.parent / "reports" / "case_history.jsonl"
+STABILITY_K = 5
 
 
 @dataclass(frozen=True)
@@ -42,6 +47,64 @@ def _task_completion_note(m: AgentMetrics) -> str:
     if m.skipped_tests > 0:
         note += f"（{m.skipped_tests} 个因无 key 跳过）"
     return note
+
+
+def _compute_route_stability(m: AgentMetrics) -> float | None:
+    """Compute pass^k stability from case_history.jsonl.
+
+    For each gold case, check if the last k runs all have actual == expected.
+    Returns stable_case_count / total_gold_cases.
+    """
+    goldset = m.details.get("_goldset_ref")
+    if not goldset:
+        return None
+
+    if not CASE_HISTORY_PATH.exists():
+        return None
+
+    # Load case history for this agent
+    case_runs: dict[str, list[dict]] = {}
+    with open(CASE_HISTORY_PATH, encoding="utf-8") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            entry = json.loads(line)
+            if entry.get("agent") == m.name:
+                cid = entry.get("case_id", "")
+                case_runs.setdefault(cid, []).append(entry)
+
+    stable_count = 0
+    total = 0
+    for cid, case in goldset.items():
+        total += 1
+        expected = case["expected_route"]
+        runs = case_runs.get(cid, [])
+        recent = runs[-STABILITY_K:]
+        if len(recent) < 1:
+            continue
+        if all(r.get("actual_route") == expected for r in recent):
+            stable_count += 1
+
+    return stable_count / total if total > 0 else None
+
+
+def _route_stability_note(m: AgentMetrics) -> str:
+    goldset = m.details.get("_goldset_ref", {})
+    if not goldset:
+        return "无 goldset 数据"
+    if not CASE_HISTORY_PATH.exists():
+        return f"k={STABILITY_K}，窗口不足（首次运行）"
+    # Count available history entries
+    count = 0
+    with open(CASE_HISTORY_PATH, encoding="utf-8") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            entry = json.loads(line)
+            if entry.get("agent") == m.name:
+                count += 1
+    window = min(STABILITY_K, count // max(len(goldset), 1))
+    return f"k={STABILITY_K}，窗口={window} 次运行；demo agent 恒为 100%，接入 LLM agent 后生效"
 
 
 METRIC_REGISTRY: list[MetricEntry] = [
@@ -93,5 +156,12 @@ METRIC_REGISTRY: list[MetricEntry] = [
         uncalibrated=True,
         note=lambda m: "未校准：demo 数据，生产环境需替换为 token 计数",
         lower_is_better=True,
+    ),
+    MetricEntry(
+        key="route_stability",
+        label="路由稳定性",
+        thresholds_key="route_stability",
+        compute=_compute_route_stability,
+        note=_route_stability_note,
     ),
 ]

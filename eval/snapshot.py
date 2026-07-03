@@ -70,13 +70,15 @@ def build_snapshot(
 
         prev_metrics = previous.get(m.name) if previous else None
 
+        _DEFAULT_THRESHOLDS = {"green": [0.0, 1.0], "yellow": [0.0, 1.0], "red": [0.0, 1.0]}
+
         def _get_cfg(thresholds_key: str) -> dict:
             # Priority: agent override > vertical preset > global
             if thresholds_key in overrides:
                 return overrides[thresholds_key]
             if thresholds_key in vertical_presets:
                 return vertical_presets[thresholds_key]
-            return t[thresholds_key]
+            return t.get(thresholds_key, _DEFAULT_THRESHOLDS)
 
         def _threshold_source(thresholds_key: str) -> str:
             if thresholds_key in overrides:
@@ -135,6 +137,11 @@ def build_snapshot(
             "vertical": vertical,
             "metrics": metrics,
             "unmapped_decisions": m.details.get("unmapped_decisions", []),
+            "goldset": {
+                "total": m.details.get("goldset_total", 0),
+                "failure_modes": m.details.get("goldset_failure_modes", {}),
+                "source": m.details.get("goldset_source", {}),
+            },
             "meta": {
                 "total_cases": m.total_cases,
                 "total_audit_entries": m.total_audit_entries,
