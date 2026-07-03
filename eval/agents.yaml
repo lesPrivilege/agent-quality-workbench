@@ -1,0 +1,55 @@
+# Agent 注册配置
+#
+# 注册新 agent 只需在 agents 列表中添加一个条目，无需修改任何 .py 文件。
+#
+# risk_rules 是对各 agent guardrail 逻辑的镜像，存在 drift 风险。
+# 长期方向：让 agent 在 audit_log 输出 risk_signals 字段，workbench 直接消费，届时删除本节。
+
+agents:
+  - name: contract-approval-agent
+    repo: ~/Projects/contract-approval-agent
+    id_field: contract_id
+    source_data: contracts.jsonl
+    expected_routes:
+      C001: auto
+      C002: hitl
+      C003: block
+      C004: block
+      C005: auto
+      C006: hitl
+      C007: auto
+      C008: hitl
+      C009: block
+      C010: hitl
+      C011: block
+    risk_rules:
+      - {path: 关联方标记, equals: true}
+      - {path: 条款标记.不可逆, equals: true}
+      - {path: 条款标记.担保, equals: true}
+
+  - name: compliance-review-agent
+    repo: ~/Projects/compliance-review-agent
+    id_field: material_id
+    source_data: materials.jsonl
+    expected_routes:
+      M001: auto
+      M002: hitl
+      M003: hitl
+      M004: hitl
+      M005: auto
+      M006: hitl
+      M007: auto
+      M008: hitl
+      M009: auto
+      M010: hitl
+    risk_rules:
+      - {path: 关联方标记, equals: true}
+      - all:
+          - {path: 涉及数据共享, equals: true}
+          - {path: 涉及受监管业务, equals: true}
+      - {path: 条款标记.担保, equals: true}
+      - all:
+          - {path: 内容摘要, contains: 反垄断}
+          - {path: 金额, gt: 3000000}
+    thresholds_override:
+      hitl_trigger_rate: {green: [0.0, 0.7], yellow: [0.7, 0.85], red: [0.85, 1.0]}

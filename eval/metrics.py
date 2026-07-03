@@ -9,6 +9,7 @@ from pathlib import Path
 import yaml
 
 THRESHOLDS_PATH = Path(__file__).parent / "thresholds.yaml"
+AGENTS_PATH = Path(__file__).parent / "agents.yaml"
 CONTRACT_REPO = Path.home() / "Projects" / "contract-approval-agent"
 COMPLIANCE_REPO = Path.home() / "Projects" / "compliance-review-agent"
 
@@ -40,6 +41,54 @@ class AgentMetrics:
 def load_thresholds() -> dict:
     with open(THRESHOLDS_PATH, encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+def load_agents() -> list[dict]:
+    """Load agent registrations from agents.yaml."""
+    with open(AGENTS_PATH, encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+    agents = data.get("agents", [])
+    for a in agents:
+        a["repo"] = Path(a["repo"]).expanduser()
+    return agents
+
+
+def _get_nested(data: dict, path: str):
+    """Get a nested field value using dot notation (e.g. '条款标记.担保')."""
+    keys = path.split(".")
+    current = data
+    for key in keys:
+        if isinstance(current, dict):
+            current = current.get(key)
+        else:
+            return None
+    return current
+
+
+def evaluate_rule(rule: dict, record: dict) -> bool:
+    """Evaluate a single risk rule against a data record.
+
+    Supported operators: equals, contains, gt, lt.
+    Combinators: all (all must match), any (at least one must match).
+    """
+    if "all" in rule:
+        return all(evaluate_rule(sub, record) for sub in rule["all"])
+    if "any" in rule:
+        return any(evaluate_rule(sub, record) for sub in rule["any"])
+
+    path = rule.get("path", "")
+    value = _get_nested(record, path)
+
+    if "equals" in rule:
+        return value == rule["equals"]
+    if "contains" in rule:
+        return isinstance(value, str) and rule["contains"] in value
+    if "gt" in rule:
+        return isinstance(value, (int, float)) and value > rule["gt"]
+    if "lt" in rule:
+        return isinstance(value, (int, float)) and value < rule["lt"]
+
+    return False
 
 
 def _threshold_label(value: float, metric_cfg: dict) -> str:
@@ -354,12 +403,141 @@ def parse_compliance_audit(repo_path: Path) -> AgentMetrics:
     return m
 
 
-def generate_dashboard(metrics_list: list[AgentMetrics], thresholds: dict) -> str:
-    """Generate markdown dashboard report."""
+def parse_agent_audit(agent_cfg: dict) -> AgentMetrics:
+    """Parse an agent's audit logs and test results from config.
+
+    Unified replacement for parse_contract_audit / parse_compliance_audit.
+    All agent-specific differences come from agent_cfg (loaded from agents.yaml).
+    """
+    name = agent_cfg["name"]
+    repo_path = agent_cfg["repo"]
+    id_field = agent_cfg["id_field"]
+    source_data_file = agent_cfg.get("source_data", "")
+    expected_routes = agent_cfg.get("expected_routes", {})
+    risk_rules = agent_cfg.get("risk_rules", [])
+
+    m = AgentMetrics(name=name)
+
+    # --- Pytest ---
+    pytest_result = _run_pytest(repo_path)
+    if pytest_result is None:
+        if not repo_path.exists():
+            m.pytest_error = f"仓库路径不存在: {repo_path}"
+        else:
+            m.pytest_error = "uv 未安装或执行失败"
+    else:
+        passed, failed, skipped = pytest_result
+        m.passed_tests = passed
+        m.failed_tests = failed
+        m.skipped_tests = skipped
+        m.total_tests = passed + failed
+        if m.total_tests > 0:
+            m.task_completion_rate = m.passed_tests / m.total_tests
+
+    # --- Audit log ---
+    audit_path = repo_path / "data" / "audit_log.jsonl"
+    entries = []
+    if audit_path.exists():
+        with open(audit_path, encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    entries.append(json.loads(line))
+
+    m.total_audit_entries = len(entries)
+    m.total_cases = len(set(e.get(id_field, "") for e in entries))
+
+    # --- Routing classification ---
+    case_routes: dict[str, set[str]] = {}
+    for e in entries:
+        cid = e.get(id_field, "")
+        d = e.get("decision", "")
+        case_routes.setdefault(cid, set()).add(d)
+
+    hitl_cases = set()
+    blocked_cases = set()
+    auto_cases = set()
+    for cid, decisions in case_routes.items():
+        if "blocked" in decisions:
+            blocked_cases.add(cid)
+        elif decisions & {"approved", "rejected"}:
+            hitl_cases.add(cid)
+        elif "auto_approved" in decisions:
+            auto_cases.add(cid)
+
+    m.hitl_count = len(hitl_cases)
+    m.blocked_count = len(blocked_cases)
+
+    if m.total_cases > 0:
+        m.hitl_trigger_rate = m.hitl_count / m.total_cases
+        m.guardrail_block_rate = m.blocked_count / m.total_cases
+
+    # --- Routing accuracy (P1-2: bidirectional) ---
+    # Derive actual routing per case: blocked > hitl > auto
+    actual_routes: dict[str, str] = {}
+    for cid, decisions in case_routes.items():
+        if "blocked" in decisions:
+            actual_routes[cid] = "block"
+        elif decisions & {"approved", "rejected"}:
+            actual_routes[cid] = "hitl"
+        elif "auto_approved" in decisions:
+            actual_routes[cid] = "auto"
+
+    correct = 0
+    mismatched = []
+    for cid, expected in expected_routes.items():
+        actual = actual_routes.get(cid)
+        if actual == expected:
+            correct += 1
+        else:
+            mismatched.append({"case_id": cid, "expected": expected, "actual": actual})
+
+    total_expected = len(expected_routes)
+    m.accuracy_proxy = correct / total_expected if total_expected else 0
+    m.details["routing_mismatched"] = mismatched
+
+    # --- Silent failure scan (config-driven risk rules) ---
+    if risk_rules and source_data_file:
+        records = _load_source_data(repo_path, source_data_file)
+        record_map = {r["id"]: r for r in records}
+
+        count = 0
+        for cid in auto_cases:
+            if cid in hitl_cases or cid in blocked_cases:
+                continue
+            rec = record_map.get(cid)
+            if rec is None:
+                continue
+            if any(evaluate_rule(rule, rec) for rule in risk_rules):
+                count += 1
+
+        m.silent_failure_count = count
+        m.silent_failure_scanned = True
+        m.silent_failure_rate = count / m.total_cases if m.total_cases > 0 else 0
+        if count == 0:
+            m.details["silent_failure_note"] = "已按规则扫描，当前无命中"
+        else:
+            m.details["silent_failure_note"] = f"扫描命中 {count} 个用例"
+
+    return m
+
+
+def generate_dashboard(metrics_list: list[AgentMetrics], thresholds: dict, agent_cfgs: list[dict] | None = None) -> str:
+    """Generate markdown dashboard report.
+
+    Args:
+        metrics_list: list of parsed agent metrics
+        thresholds: global thresholds dict from thresholds.yaml
+        agent_cfgs: optional list of agent configs (for per-agent threshold overrides)
+    """
     from datetime import datetime
 
     date_str = datetime.now().strftime("%Y-%m-%d")
     lines = [f"# Agent 质量仪表盘 {date_str}\n"]
+
+    cfg_map = {}
+    if agent_cfgs:
+        for cfg in agent_cfgs:
+            cfg_map[cfg["name"]] = cfg
 
     for m in metrics_list:
         lines.append(f"## {m.name}\n")
@@ -367,9 +545,18 @@ def generate_dashboard(metrics_list: list[AgentMetrics], thresholds: dict) -> st
         lines.append(f"|------|-----|------|------|")
 
         t = thresholds["metrics"]
+        overrides = {}
+        if m.name in cfg_map:
+            overrides = cfg_map[m.name].get("thresholds_override", {})
+
+        def _get_cfg(metric_key: str) -> dict:
+            return overrides.get(metric_key, t[metric_key])
+
+        def _is_override(metric_key: str) -> bool:
+            return metric_key in overrides
 
         # Task completion
-        cfg = t["task_completion_rate"]
+        cfg = _get_cfg("task_completion_rate")
         status = _threshold_label(m.task_completion_rate, cfg)
         skip_note = f"（{m.skipped_tests} 个因无 key 跳过）" if m.skipped_tests > 0 else ""
         if m.pytest_error:
@@ -377,31 +564,37 @@ def generate_dashboard(metrics_list: list[AgentMetrics], thresholds: dict) -> st
         else:
             lines.append(f"| 任务完成率 | {m.task_completion_rate:.1%} | {status} | {m.passed_tests}/{m.total_tests} passed{skip_note} |")
 
-        # Accuracy proxy
-        cfg = t["accuracy_proxy"]
+        # Accuracy proxy (routing accuracy)
+        cfg = _get_cfg("accuracy_proxy")
         status = _threshold_label(m.accuracy_proxy, cfg)
-        lines.append(f"| 准确率代理 | {m.accuracy_proxy:.1%} | {status} | 审计日志 decision 命中预期路径 |")
+        note = "路由准确率（期望 vs 实际）"
+        mismatched = m.details.get("routing_mismatched", [])
+        if mismatched:
+            mismatch_str = ", ".join(f"{d['case_id']}: 期望 {d['expected']} → 实际 {d['actual'] or '无'}" for d in mismatched)
+            note += f"；不匹配: {mismatch_str}"
+        override_note = "（agent 阈值）" if _is_override("accuracy_proxy") else ""
+        lines.append(f"| 准确率代理 | {m.accuracy_proxy:.1%} | {status} | {note}{override_note} |")
 
         # HITL rate
-        cfg = t["hitl_trigger_rate"]
+        cfg = _get_cfg("hitl_trigger_rate")
         status = _threshold_label(m.hitl_trigger_rate, cfg)
-        lines.append(f"| HITL 触发率 | {m.hitl_trigger_rate:.1%} | {status} | {m.hitl_count} 次人工介入 |")
+        override_note = "（agent 阈值）" if _is_override("hitl_trigger_rate") else ""
+        lines.append(f"| HITL 触发率 | {m.hitl_trigger_rate:.1%} | {status} | {m.hitl_count} 次人工介入{override_note} |")
 
         # Guardrail block rate
-        cfg = t["guardrail_block_rate"]
+        cfg = _get_cfg("guardrail_block_rate")
         status = _threshold_label(m.guardrail_block_rate, cfg)
-        lines.append(f"| Guardrail 拦截率 | {m.guardrail_block_rate:.1%} | {status} | {m.blocked_count} 次阻断 |")
+        override_note = "（agent 阈值）" if _is_override("guardrail_block_rate") else ""
+        lines.append(f"| Guardrail 拦截率 | {m.guardrail_block_rate:.1%} | {status} | {m.blocked_count} 次阻断{override_note} |")
 
         # Silent failure
-        cfg = t["silent_failure_rate"]
+        cfg = _get_cfg("silent_failure_rate")
         status = _threshold_label(m.silent_failure_rate, cfg)
         sf_note = m.details.get("silent_failure_note", "未扫描")
         lines.append(f"| Silent Failure | {m.silent_failure_rate:.1%} | {status} | {sf_note} |")
 
-        # Latency
-        cfg = t["cost_latency_proxy"]
-        status = _threshold_label(m.avg_latency_ms, cfg)
-        lines.append(f"| 平均延迟 | {m.avg_latency_ms:.0f}ms | {status} | 最大 {m.max_latency_ms:.0f}ms |")
+        # Latency (P1-4: placeholder — demo data uncalibrated)
+        lines.append(f"| 平均延迟 | {m.avg_latency_ms:.0f}ms | ⚪ | 未校准：demo 数据，生产环境需替换为 token 计数 |")
 
         lines.append("")
 
