@@ -71,3 +71,11 @@ metrics:
     yellow: [0.85, 0.95]
     red: [0.0, 0.85]
     rationale: "pass^k 代理：k 次全对才是稳定。demo agent 是确定性规则实现，此指标当前恒为 100%，其价值在于接入真实 LLM agent（非确定性）后立即生效"
+
+staleness:
+  goldset_case_max_age_days: 90
+  rationale: "goldset case 距上次人工复验超过 90 天视为过期（age proxy，不比对真实法规变更日期——当前无变更追踪数据源）。90 天是一个季度的量级，与 PM 复盘节奏对齐"
+
+drift:
+  window_size: 5
+  rationale: "与 route_stability 已用的 k=5 保持一致习惯。滑动窗口对比最近 N 次运行 vs 紧邻其前的 N 次运行，任一指标越级变色记为漂移事件"
