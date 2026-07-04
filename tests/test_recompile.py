@@ -7,6 +7,7 @@ from eval.threshold_resolution import resolve_threshold_cfg
 from eval.staleness import compute_goldset_staleness
 from eval.drift import detect_metric_drift
 from eval.regulation_staleness import scan_regulation_staleness
+from eval.recompile_report import build_recompile_snapshot, render_recompile_markdown
 
 
 class TestThresholdResolution:
@@ -273,3 +274,61 @@ class TestRegulationStaleness:
         }]
         result = scan_regulation_staleness(entries, id_field="contract_id", today=date(2026, 7, 4))
         assert result["stale_refs"][0]["case_id"] == "C005"
+
+
+def _agent_report(name="test-agent", stale_count=0, drift_events=None, instrumented=False):
+    return {
+        "name": name,
+        "goldset_staleness": {
+            "max_age_days": 90, "method": "age_proxy", "total_cases": 10,
+            "stale_count": stale_count, "stale_ratio": stale_count / 10,
+            "stale_cases": [{"id": "X001", "reason": "age", "age_days": 100}] if stale_count else [],
+        },
+        "metric_drift": {
+            "window_size": 5, "insufficient_history": False,
+            "history_count": 10, "required_count": 10,
+            "events": drift_events or [], "improvements": [],
+        },
+        "regulation_staleness": (
+            {"instrumented": True, "stale_count": 0, "stale_refs": []}
+            if instrumented else {"instrumented": False}
+        ),
+    }
+
+
+class TestRecompileReport:
+    def test_schema_version_present(self):
+        snapshot = build_recompile_snapshot([_agent_report()], today=date(2026, 7, 4))
+        assert snapshot["schema_version"] == "1.0"
+        assert snapshot["date"] == "2026-07-04"
+
+    def test_summary_aggregates_across_agents(self):
+        drift_event = {
+            "metric": "hitl_trigger_rate", "old_status": "green", "new_status": "yellow",
+            "old_avg": 0.2, "new_avg": 0.5,
+            "old_window_span": {"from": "2026-07-01", "to": "2026-07-02"},
+            "new_window_span": {"from": "2026-07-03", "to": "2026-07-04"},
+        }
+        agents = [
+            _agent_report("agent-a", stale_count=2, drift_events=[drift_event], instrumented=True),
+            _agent_report("agent-b", stale_count=0, drift_events=[], instrumented=False),
+        ]
+        snapshot = build_recompile_snapshot(agents, today=date(2026, 7, 4))
+        assert snapshot["summary"]["total_stale_cases"] == 2
+        assert snapshot["summary"]["total_drift_events"] == 1
+        assert snapshot["summary"]["agents_instrumented_for_regulation_staleness"] == 1
+
+    def test_render_no_drift_no_stale_says_so_explicitly(self):
+        snapshot = build_recompile_snapshot([_agent_report()], today=date(2026, 7, 4))
+        md = render_recompile_markdown(snapshot)
+        assert "当前无过期 case" in md
+        assert "当前无漂移" in md
+        assert "未接入检测" in md
+
+    def test_render_includes_agent_name_and_stale_case(self):
+        snapshot = build_recompile_snapshot(
+            [_agent_report("contract-approval-agent", stale_count=1)], today=date(2026, 7, 4)
+        )
+        md = render_recompile_markdown(snapshot)
+        assert "contract-approval-agent" in md
+        assert "X001" in md
