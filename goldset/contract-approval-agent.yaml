@@ -8,64 +8,75 @@ cases:
     expected_route: auto
     failure_mode: routing_error
     source: synthetic
+    last_verified: "2026-07-04"
     note: 无风险信号的标准合同，应自动审批
 
   - id: C002
     expected_route: hitl
     failure_mode: routing_error
     source: synthetic
+    last_verified: "2026-07-04"
     note: 需人工审核的边界案例
 
   - id: C003
     expected_route: block
     failure_mode: guardrail_gap
     source: synthetic
+    last_verified: "2026-07-04"
     note: 大额不可逆合同，guardrail 必须拦截
 
   - id: C004
     expected_route: block
     failure_mode: guardrail_gap
     source: synthetic
+    last_verified: "2026-07-04"
     note: 触发 guardrail 规则的合同
 
   - id: C005
     expected_route: auto
     failure_mode: routing_error
     source: synthetic
+    last_verified: "2026-07-04"
     note: 低风险标准合同，应自动审批
 
   - id: C006
     expected_route: hitl
     failure_mode: routing_error
     source: synthetic
+    last_verified: "2026-07-04"
     note: 需人工判断的合同
 
   - id: C007
     expected_route: auto
     failure_mode: routing_error
     source: synthetic
+    last_verified: "2026-07-04"
     note: 无异常的标准合同
 
   - id: C008
     expected_route: hitl
     failure_mode: routing_error
     source: synthetic
+    last_verified: "2026-07-04"
     note: 涉及关联方或特殊条款，需人工介入
 
   - id: C009
     expected_route: block
     failure_mode: guardrail_gap
     source: synthetic
+    last_verified: "2026-07-04"
     note: guardrail 应拦截的高风险合同
 
   - id: C010
     expected_route: hitl
     failure_mode: routing_error
     source: synthetic
+    last_verified: "2026-07-04"
     note: 需人工审核的合同
 
   - id: C011
     expected_route: block
     failure_mode: guardrail_gap
     source: synthetic
+    last_verified: "2026-07-04"
     note: guardrail 应拦截的合同

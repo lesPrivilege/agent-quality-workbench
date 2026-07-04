@@ -8,58 +8,68 @@ cases:
     expected_route: auto
     failure_mode: routing_error
     source: synthetic
+    last_verified: "2026-07-04"
     note: 无风险信号的材料，应自动审批
 
   - id: M002
     expected_route: hitl
     failure_mode: routing_error
     source: synthetic
+    last_verified: "2026-07-04"
     note: 需人工审核的合规材料
 
   - id: M003
     expected_route: hitl
     failure_mode: routing_error
     source: synthetic
+    last_verified: "2026-07-04"
     note: 需人工判断的合规材料
 
   - id: M004
     expected_route: hitl
     failure_mode: routing_error
     source: synthetic
+    last_verified: "2026-07-04"
     note: 需人工审核的材料
 
   - id: M005
     expected_route: auto
     failure_mode: routing_error
     source: synthetic
+    last_verified: "2026-07-04"
     note: 低风险标准材料，应自动审批
 
   - id: M006
     expected_route: hitl
     failure_mode: routing_error
     source: synthetic
+    last_verified: "2026-07-04"
     note: 涉及受监管业务，需人工介入
 
   - id: M007
     expected_route: auto
     failure_mode: routing_error
     source: synthetic
+    last_verified: "2026-07-04"
     note: 无异常的标准材料
 
   - id: M008
     expected_route: hitl
     failure_mode: routing_error
     source: synthetic
+    last_verified: "2026-07-04"
     note: 涉及数据共享和受监管业务，需人工审核
 
   - id: M009
     expected_route: auto
     failure_mode: routing_error
     source: synthetic
+    last_verified: "2026-07-04"
     note: 低风险材料，应自动审批
 
   - id: M010
     expected_route: hitl
     failure_mode: routing_error
     source: synthetic
+    last_verified: "2026-07-04"
     note: 需人工审核的合规材料
