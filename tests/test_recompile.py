@@ -211,3 +211,24 @@ class TestMetricDrift:
                                       thresholds=FIXTURE_THRESHOLDS, agent_cfg={})
         assert result["history_count"] == 1
         assert result["insufficient_history"] is True
+
+    def test_old_window_is_immediately_preceding_not_earliest_ever(self):
+        """With k=6 > required=4 (window_size=2), the OLD window must be the
+        2 entries immediately preceding the newest 2 — not the earliest 2 ever
+        recorded. Anchoring to the earliest N is a real bug this feature's
+        design phase already rejected once (see design spec 'Detailed Design
+        > drift.py' section) — this is the only test shape that can catch a
+        regression back to it, since entries[:N] == entries[k-2N:k-N] when
+        k == 2N exactly, which is all the other tests use."""
+        history = _history([
+            ("2026-06-01", 0.9), ("2026-06-02", 0.9),   # earliest N — must be ignored
+            ("2026-07-01", 0.2), ("2026-07-02", 0.2),   # correct OLD window
+            ("2026-07-03", 0.5), ("2026-07-04", 0.5),   # correct NEW window
+        ])
+        result = detect_metric_drift(history, "test-agent", window_size=2,
+                                      thresholds=FIXTURE_THRESHOLDS, agent_cfg={})
+        events = [e for e in result["events"] if e["metric"] == "hitl_trigger_rate"]
+        assert len(events) == 1
+        assert events[0]["old_status"] == "green"   # 0.2 avg, NOT 0.9 (which would be red)
+        assert events[0]["new_status"] == "yellow"
+        assert events[0]["old_window_span"] == {"from": "2026-07-01", "to": "2026-07-02"}
