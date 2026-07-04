@@ -25,10 +25,10 @@
   [data-reveal]{transform:translateY(22px);}
   [data-reveal].in{transform:none;transition:transform .8s cubic-bezier(.2,.75,.25,1);}
 
-  .nav-link{text-decoration:none;font-size:13.5px;padding:8px 13px;border-radius:9px;color:#7B7D83;font-weight:500;letter-spacing:.01em;transition:color .2s,background .2s;}
+  .nav-link{text-decoration:none;font-size:13.5px;padding:8px 13px;border-radius:9px;color:#7B7D83;font-weight:500;letter-spacing:.01em;transition:color .2s,background .2s;white-space:nowrap;flex-shrink:0;}
   .nav-link:hover{background:rgba(20,20,25,0.05);}
   .nav-link.active{color:#191A1C;font-weight:600;}
-  .src-btn{margin-left:8px;text-decoration:none;font-size:13px;font-weight:600;padding:8px 15px;border-radius:10px;color:#F4F3EF;background:#191A1C;transition:transform .2s,background .2s;display:inline-block;}
+  .src-btn{margin-left:8px;text-decoration:none;font-size:13px;font-weight:600;padding:8px 15px;border-radius:10px;color:#F4F3EF;background:#191A1C;transition:transform .2s,background .2s;display:inline-block;white-space:nowrap;flex-shrink:0;}
   .src-btn:hover{background:var(--accent);transform:translateY(-1px);}
   .gap-card{background:#FFFFFF;border:1px solid rgba(20,20,25,0.08);border-radius:20px;padding:26px 24px;display:flex;flex-direction:column;gap:16px;box-shadow:0 1px 2px rgba(20,20,30,0.03),0 10px 34px rgba(20,20,30,0.04);transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s;}
   .gap-card:hover{transform:translateY(-4px);box-shadow:0 1px 2px rgba(20,20,30,0.04),0 20px 44px rgba(20,20,30,0.08);}
@@ -44,11 +44,11 @@
   <!-- ===== NAV ===== -->
   <nav style="position:sticky;top:0;z-index:60;backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);background:rgba(244,243,239,0.78);border-bottom:1px solid rgba(20,20,25,0.08);">
     <div style="max-width:1120px;margin:0 auto;padding:0 32px;height:66px;display:flex;align-items:center;justify-content:space-between;gap:24px;">
-      <a href="#hero" style="display:flex;align-items:center;gap:11px;text-decoration:none;color:#191A1C;">
-        <span style="width:16px;height:16px;background:var(--accent);transform:rotate(45deg);border-radius:3px;display:inline-block;"></span>
+      <a href="#hero" style="display:flex;align-items:center;gap:11px;text-decoration:none;color:#191A1C;white-space:nowrap;flex-shrink:0;">
+        <span style="width:16px;height:16px;background:var(--accent);transform:rotate(45deg);border-radius:3px;display:inline-block;flex-shrink:0;"></span>
         <span style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:.02em;font-weight:600;">agent-pm / workbench</span>
       </a>
-      <div style="display:flex;align-items:center;gap:6px;">
+      <div style="display:flex;align-items:center;gap:6px;overflow-x:auto;min-width:0;">
         <a href="#why" class="nav-link" data-nav="why">为什么</a>
         <a href="#ladder" class="nav-link" data-nav="ladder">复杂度阶梯</a>
         <a href="#dashboard" class="nav-link" data-nav="dashboard">质量仪表盘</a>
@@ -194,7 +194,7 @@
           <div style="position:absolute;top:-3px;left:10%;">
             <div style="position:absolute;bottom:0;left:0;width:2px;height:30px;background:#C88A16;transform:translate(-50%,0);"></div>
             <div style="position:absolute;bottom:30px;left:0;width:12px;height:12px;border-radius:50%;background:#C88A16;border:3px solid #FFFFFF;transform:translate(-50%,50%);box-shadow:0 2px 8px rgba(20,20,30,0.15);"></div>
-            <div style="position:absolute;top:14px;left:0;transform:translateX(-14%);white-space:nowrap;text-align:center;"><div style="font-size:13px;font-weight:650;color:#191A1C;">报价生成</div><div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:600;color:#C88A16;margin-top:1px;">0.5</div></div>
+            <div style="position:absolute;top:14px;left:0;transform:translateX(-50%);white-space:nowrap;text-align:center;"><div style="font-size:13px;font-weight:650;color:#191A1C;">报价生成</div><div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:600;color:#C88A16;margin-top:1px;">0.5</div></div>
           </div>
           <div style="position:absolute;top:-3px;left:65%;">
             <div style="position:absolute;bottom:0;left:0;width:2px;height:30px;background:var(--accent);transform:translate(-50%,0);"></div>
@@ -204,7 +204,7 @@
           <div style="position:absolute;top:-3px;left:96%;">
             <div style="position:absolute;bottom:0;left:0;width:2px;height:30px;background:#D8503A;transform:translate(-50%,0);"></div>
             <div style="position:absolute;bottom:30px;left:0;width:12px;height:12px;border-radius:50%;background:#D8503A;border:3px solid #FFFFFF;transform:translate(-50%,50%);box-shadow:0 2px 8px rgba(20,20,30,0.15);"></div>
-            <div style="position:absolute;top:14px;left:0;transform:translateX(-88%);white-space:nowrap;text-align:center;"><div style="font-size:13px;font-weight:650;color:#191A1C;">合规审查</div><div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:600;color:#D8503A;margin-top:1px;">4.8</div></div>
+            <div style="position:absolute;top:14px;left:0;transform:translateX(-50%);white-space:nowrap;text-align:center;"><div style="font-size:13px;font-weight:650;color:#191A1C;">合规审查</div><div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:600;color:#D8503A;margin-top:1px;">4.8</div></div>
           </div>
         </div>
       </div>
@@ -388,7 +388,7 @@
             "trend": "flat",
             "dimension": "accuracy",
             "threshold_source": "global",
-            "note": "44/44 passed（8 个因无 key 跳过）"
+            "note": "46/46 passed（8 个因无 key 跳过）"
           },
           {
             "key": "accuracy_proxy",
@@ -429,13 +429,13 @@
           },
           {
             "key": "avg_latency_ms",
-            "value": 1.0,
-            "status": "uncalibrated",
-            "trend": "flat",
+            "value": 1.0035335689045937,
+            "status": "green",
+            "trend": "up",
             "dimension": "latency",
             "threshold_source": "global",
-            "note": "未校准：demo 数据，生产环境需替换为 token 计数",
-            "max_ms": 1.0
+            "note": "1ms（基于 audit_log duration_ms）",
+            "max_ms": 2.0
           },
           {
             "key": "route_stability",
@@ -444,32 +444,32 @@
             "trend": "none",
             "dimension": "stability",
             "threshold_source": "global",
-            "note": "k=5，窗口=2 次运行；demo agent 恒为 100%，接入 LLM agent 后生效"
+            "note": "k=5，窗口=3 次运行；demo agent 恒为 100%，接入 LLM agent 后生效"
           },
           {
             "key": "step_efficiency",
-            "value": null,
-            "status": "uncalibrated",
+            "value": 1.0,
+            "status": "green",
             "trend": "none",
             "dimension": "cost",
             "threshold_source": "global",
-            "note": "需 agent 输出 data/trace_log.jsonl，schema 见 eval/trace.py"
+            "note": "283 步记录"
           },
           {
             "key": "tool_arg_correctness",
-            "value": null,
-            "status": "uncalibrated",
+            "value": 1.0,
+            "status": "green",
             "trend": "none",
             "dimension": "accuracy",
             "threshold_source": "global",
-            "note": "需 agent 输出 data/trace_log.jsonl，schema 见 eval/trace.py"
+            "note": "39 次工具调用"
           }
         ],
         "dimensions": {
           "accuracy": "green",
           "cost": "green",
           "security": "yellow",
-          "latency": "uncalibrated",
+          "latency": "green",
           "stability": "green"
         },
         "unmapped_decisions": [
@@ -505,9 +505,9 @@
         },
         "meta": {
           "total_cases": 11,
-          "total_audit_entries": 8055,
-          "passed_tests": 44,
-          "total_tests": 44,
+          "total_audit_entries": 283,
+          "passed_tests": 46,
+          "total_tests": 46,
           "skipped_tests": 8
         }
       },
@@ -522,7 +522,7 @@
             "trend": "flat",
             "dimension": "accuracy",
             "threshold_source": "global",
-            "note": "40/40 passed（8 个因无 key 跳过）"
+            "note": "43/43 passed（8 个因无 key 跳过）"
           },
           {
             "key": "accuracy_proxy",
@@ -563,13 +563,13 @@
           },
           {
             "key": "avg_latency_ms",
-            "value": 1.1818181818181819,
-            "status": "uncalibrated",
+            "value": 1.0,
+            "status": "green",
             "trend": "down",
             "dimension": "latency",
             "threshold_source": "global",
-            "note": "未校准：demo 数据，生产环境需替换为 token 计数",
-            "max_ms": 5.0
+            "note": "1ms（基于 audit_log duration_ms）",
+            "max_ms": 1.0
           },
           {
             "key": "route_stability",
@@ -578,16 +578,16 @@
             "trend": "none",
             "dimension": "stability",
             "threshold_source": "global",
-            "note": "k=5，窗口=2 次运行；demo agent 恒为 100%，接入 LLM agent 后生效"
+            "note": "k=5，窗口=3 次运行；demo agent 恒为 100%，接入 LLM agent 后生效"
           },
           {
             "key": "step_efficiency",
-            "value": null,
-            "status": "uncalibrated",
+            "value": 0.2,
+            "status": "green",
             "trend": "none",
             "dimension": "cost",
             "threshold_source": "global",
-            "note": "需 agent 输出 data/trace_log.jsonl，schema 见 eval/trace.py"
+            "note": "30 步记录"
           },
           {
             "key": "tool_arg_correctness",
@@ -596,14 +596,14 @@
             "trend": "none",
             "dimension": "accuracy",
             "threshold_source": "global",
-            "note": "需 agent 输出 data/trace_log.jsonl，schema 见 eval/trace.py"
+            "note": "0 次工具调用"
           }
         ],
         "dimensions": {
           "accuracy": "green",
           "cost": "green",
           "security": "green",
-          "latency": "uncalibrated",
+          "latency": "green",
           "stability": "green"
         },
         "unmapped_decisions": [
@@ -636,9 +636,9 @@
         },
         "meta": {
           "total_cases": 10,
-          "total_audit_entries": 3885,
-          "passed_tests": 40,
-          "total_tests": 40,
+          "total_audit_entries": 150,
+          "passed_tests": 43,
+          "total_tests": 43,
           "skipped_tests": 8
         }
       }
@@ -647,7 +647,7 @@
   "scores": [
     {
       "scenario": "compliance_review",
-      "weighted_score": 4.9,
+      "weighted_score": 4.8,
       "level": "复杂 agent（全栈）",
       "recommendation": "多步推理 + 工具调用 + HITL + guardrails + RAG + 自主决策",
       "dimensions": [
@@ -671,8 +671,8 @@
           "dimension": "风险等级",
           "raw_score": 5,
           "max_score": 5,
-          "weight": 0.25,
-          "weighted": 1.25,
+          "weight": 0.2,
+          "weighted": 1.0,
           "reason": "直接涉及合规和法律风险"
         },
         {
@@ -695,15 +695,15 @@
           "dimension": "频次",
           "raw_score": 3,
           "max_score": 5,
-          "weight": 0.05,
-          "weighted": 0.15,
+          "weight": 0.1,
+          "weighted": 0.3,
           "reason": "中频，每次合同或交易触发"
         }
       ]
     },
     {
       "scenario": "contract_approval",
-      "weighted_score": 3.2,
+      "weighted_score": 3.25,
       "level": "中等 agent（routing + HITL + RAG）",
       "recommendation": "路由 + guardrails + HITL + 知识检索",
       "dimensions": [
@@ -727,8 +727,8 @@
           "dimension": "风险等级",
           "raw_score": 4,
           "max_score": 5,
-          "weight": 0.25,
-          "weighted": 1.0,
+          "weight": 0.2,
+          "weighted": 0.8,
           "reason": "涉及合规、财务、法律风险"
         },
         {
@@ -751,15 +751,15 @@
           "dimension": "频次",
           "raw_score": 5,
           "max_score": 5,
-          "weight": 0.05,
-          "weighted": 0.25,
+          "weight": 0.1,
+          "weighted": 0.5,
           "reason": "每天数十到数百份合同"
         }
       ]
     },
     {
       "scenario": "quote_generation",
-      "weighted_score": 0.25,
+      "weighted_score": 0.5,
       "level": "不建议上 agent",
       "recommendation": "用规则引擎或脚本即可，agent 增加的成本和风险不值得",
       "dimensions": [
@@ -783,7 +783,7 @@
           "dimension": "风险等级",
           "raw_score": 0,
           "max_score": 5,
-          "weight": 0.25,
+          "weight": 0.2,
           "weighted": 0.0,
           "reason": "低风险，报价是内部建议不具法律约束"
         },
@@ -807,8 +807,8 @@
           "dimension": "频次",
           "raw_score": 5,
           "max_score": 5,
-          "weight": 0.05,
-          "weighted": 0.25,
+          "weight": 0.1,
+          "weighted": 0.5,
           "reason": "高频，销售每天发数十份报价"
         }
       ]
@@ -854,6 +854,27 @@
           "guardrail_block_rate": 0.0,
           "silent_failure_rate": 0.0,
           "avg_latency_ms": 1.1818181818181819
+        }
+      }
+    },
+    {
+      "date": "2026-07-03",
+      "agents": {
+        "contract-approval-agent": {
+          "task_completion_rate": 1.0,
+          "accuracy_proxy": 1.0,
+          "hitl_trigger_rate": 0.36363636363636365,
+          "guardrail_block_rate": 0.36363636363636365,
+          "silent_failure_rate": 0.0,
+          "avg_latency_ms": 1.0035335689045937
+        },
+        "compliance-review-agent": {
+          "task_completion_rate": 1.0,
+          "accuracy_proxy": 1.0,
+          "hitl_trigger_rate": 0.6,
+          "guardrail_block_rate": 0.0,
+          "silent_failure_rate": 0.0,
+          "avg_latency_ms": 1.0
         }
       }
     }
@@ -990,7 +1011,7 @@
 
   // Footer date
   var sd = document.getElementById('snapshot-date');
-  if(sd && dash.date) sd.textContent = '生成于 '+dash.date+' · 非实时';
+  if(sd && dash.date) sd.textContent = '生成于 '+dash.date;
 
   // === Original behaviors ===
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
