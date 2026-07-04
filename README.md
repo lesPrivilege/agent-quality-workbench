@@ -158,6 +158,24 @@ uv run python scripts/build_site.py       # 把最新快照注入 docs/index.htm
 
 依赖 `eval/agents.yaml` 中注册的各 agent repo 的 `data/audit_log.jsonl` 与 pytest（只读，不修改那些 repo）。每次运行会向 `reports/history.jsonl`（指标级）和 `reports/case_history.jsonl`（case 级，供稳定性指标使用）各追加一次记录。
 
+## 模块三：重编译触发层
+
+### 设计理由
+
+仪表盘回答"现在健康吗"，这一层回答"哪些编译产物需要重新验证"——两个不同的问题，对应 `docs/roadmap.md` 缺口一。三个信号：
+
+1. **Goldset 时效性**——`last_verified` 距今超过阈值（当前 90 天）的 case 视为过期，缺失该字段直接计入过期（不能假设没填等于新鲜）。纯 age-based proxy，不比对真实规则变更日期（无可靠数据源，构造一个是投机性建设）。
+2. **指标漂移**——`reports/history.jsonl` 滑动窗口对比：最近 N 次运行 vs 紧邻其前的 N 次（N=5，与路由稳定性的 k=5 一致），任一核心指标越级变色（如 green→yellow）记为漂移事件。只抓跨级变化，同一色带内的缓慢滑坡是已知盲区，暂不做斜率检测。
+3. **模式三（法规时效失效）——契约先行，未实装**：探查发现 sibling repo（`compliance-review-agent`）的法规库无 ID/生效日期、audit_log 不记录命中的具体法规，两个前提都不满足时做真实扫描只会产出假数据。`eval/regulation_staleness.py` 只定义 `regulation_refs` 字段契约和一个区分"未接入检测"与"已检测无异常"的扫描器（前者绝不能显示成后者——那是假绿灯，和 M013 案例同一类错误）。
+
+### 如何跑
+
+```bash
+uv run python scripts/run_recompile_check.py
+```
+
+输出 `reports/recompile_triggers_<date>.json`（新的编译产物契约，带 `schema_version`）和 `.md`。依赖 `reports/history.jsonl` 和各 goldset 文件，只读不改动 agent 仓库。
+
 ## 项目结构
 
 ```
@@ -171,13 +189,19 @@ agent-quality-workbench/
 │   ├── snapshot.py              ← 计算层：产出 JSON 快照（渲染与计算分离）
 │   ├── metric_registry.py       ← 指标注册表（含 CLASSIC 五维归类）
 │   ├── trace.py                 ← 轨迹评估的 schema 契约（预留）
-│   └── thresholds.yaml          ← 全局红/黄/绿阈值 + 理由
-├── goldset/                     ← 黄金测试集：每 case 带失败模式与来源标注
+│   ├── thresholds.yaml          ← 全局红/黄/绿阈值 + 理由，含 staleness/drift 配置
+│   ├── threshold_resolution.py  ← 阈值优先级解析（agent override > vertical preset > global），snapshot.py 与 drift.py 共用
+│   ├── staleness.py             ← goldset case age-based 过期检测
+│   ├── drift.py                 ← history.jsonl 滑动窗口漂移检测
+│   ├── regulation_staleness.py  ← 模式三契约定义（未实装真实扫描）
+│   └── recompile_report.py      ← 重编译触发报告：计算层 + 渲染层
+├── goldset/                     ← 黄金测试集：每 case 带失败模式、来源、last_verified 标注
 ├── verticals/
 │   └── legal-compliance/        ← 垂类 profile：权重覆盖、阈值 preset、风险规则模板
 ├── scripts/
 │   ├── run_scorer.py            ← 场景评分（--scenario / --profile）
 │   ├── run_dashboard.py         ← 生成快照 + 仪表盘 + 历史
+│   ├── run_recompile_check.py   ← 生成重编译触发报告
 │   └── build_site.py            ← 把最新快照注入 docs/index.html
 ├── reports/                     ← 快照、报告、指标/case 级历史
 ├── tests/                       ← workbench 自身测试（fixture 驱动，不依赖外部 repo）
