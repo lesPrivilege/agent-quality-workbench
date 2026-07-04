@@ -58,7 +58,8 @@ git commit -m "chore: add staleness + drift config sections to thresholds.yaml"
 - Create: `eval/threshold_resolution.py`
 - Create: `tests/test_recompile.py`（本计划的新测试文件，本任务先写 `TestThresholdResolution`，后续任务陆续追加）
 - Modify: `eval/snapshot.py:1-24` (imports + `_threshold_status` 重命名), `eval/snapshot.py:56-89` (`build_snapshot` 内部)
-- 回归覆盖: `tests/test_workbench.py`（已存在，snapshot.py 的重构部分靠它兜底，不新增该部分专属测试——行为不变的重构）
+- Modify: `tests/test_workbench.py:15`（import 改名）, `tests/test_workbench.py:316-322`（两处调用改名）——重命名后必须同步更新，否则整个文件收集失败
+- 回归覆盖: `tests/test_workbench.py` 其余部分（`TestProfilePriority` 里 `test_agent_override_wins_over_vertical` 等，靠现有全量测试兜底——行为不变的重构，不新增这部分专属测试）
 
 - [ ] **Step 1: 重构前，先确认现有全量测试通过（建立基线）**
 
@@ -203,29 +204,75 @@ def threshold_status(value: float, metric_cfg: dict) -> str:
                     status = threshold_status(value, cfg)
 ```
 
-- [ ] **Step 9: 全文搜索确认没有遗留的 `_threshold_status` / `_DEFAULT_THRESHOLDS` 引用**
+- [ ] **Step 9: 修复 `tests/test_workbench.py` 里对旧私有名的引用**
+
+`tests/test_workbench.py` 有一处模块级 import 和两处调用直接用的是 `_threshold_status` 这个旧私有名，重命名后如果不改，整个文件会在收集阶段就报 `ImportError`，导致该文件里全部既有测试（不只是用到这个函数的 2 个）一起报错。
+
+把第 15 行：
+
+```python
+from eval.snapshot import build_snapshot, _threshold_status
+```
+
+改成：
+
+```python
+from eval.snapshot import build_snapshot, threshold_status
+```
+
+把 `TestProfilePriority` 类里的两处调用：
+
+```python
+    def test_threshold_status_green(self):
+        cfg = {"green": [0.0, 0.7], "yellow": [0.7, 0.85], "red": [0.85, 1.0]}
+        assert _threshold_status(0.6, cfg) == "green"
+
+    def test_threshold_status_yellow(self):
+        cfg = {"green": [0.0, 0.7], "yellow": [0.7, 0.85], "red": [0.85, 1.0]}
+        assert _threshold_status(0.75, cfg) == "yellow"
+```
+
+改成：
+
+```python
+    def test_threshold_status_green(self):
+        cfg = {"green": [0.0, 0.7], "yellow": [0.7, 0.85], "red": [0.85, 1.0]}
+        assert threshold_status(0.6, cfg) == "green"
+
+    def test_threshold_status_yellow(self):
+        cfg = {"green": [0.0, 0.7], "yellow": [0.7, 0.85], "red": [0.85, 1.0]}
+        assert threshold_status(0.75, cfg) == "yellow"
+```
+
+注意：`tests/test_workbench.py` 里另一个函数 `_threshold_label`（`eval/metrics.py` 里的，emoji 版本）不在本次重命名范围内，不要动它——那是已知的范围外重复项（见本计划末尾"已知的范围外事项"），本任务只改 `_threshold_status`。
+
+- [ ] **Step 10: 全文搜索确认没有遗留的 `_threshold_status` / `_DEFAULT_THRESHOLDS` 引用**
 
 Run: `grep -rn "_threshold_status\|_DEFAULT_THRESHOLDS" eval/ scripts/ tests/`
-Expected: 无匹配输出。
+Expected: 无匹配输出（`_threshold_label` 会被跳过，因为搜的是 `_threshold_status` 不是 `_threshold_label`，两者字符串不同）。
 
-- [ ] **Step 10: 重跑全量测试，确认行为不变且新测试都在**
+- [ ] **Step 11: 重跑全量测试，确认行为不变且新测试都在**
 
 Run: `uv run pytest tests/ -v`
-Expected: `65 passed`（基线 61 + 本任务新增的 4 个 `TestThresholdResolution`），无失败。
+Expected: `65 passed`（基线 61 + 本任务新增的 4 个 `TestThresholdResolution`），无失败，尤其确认 `test_workbench.py::TestProfilePriority` 全部通过（证明重命名后旧测试仍然认得这个函数）。
 
-- [ ] **Step 11: Commit**
+- [ ] **Step 12: Commit**
 
 ```bash
-git add eval/threshold_resolution.py eval/snapshot.py tests/test_recompile.py
+git add eval/threshold_resolution.py eval/snapshot.py tests/test_recompile.py tests/test_workbench.py
 git commit -m "refactor: extract threshold_resolution.py, rename _threshold_status to public
 
 Behavior-preserving for snapshot.py — covered by the existing full suite
-staying green. Adds dedicated TestThresholdResolution coverage for the
-three-tier priority chain itself (agent override > vertical preset >
-global), which previously had no direct test of its own. snapshot.py
-and the upcoming drift.py must resolve overrides identically, or the
-dashboard and the recompile-trigger report could disagree about what
-counts as green for the same agent+metric."
+staying green. Updates test_workbench.py's import of the old private
+name (would otherwise break collection of the entire file, not just
+the two tests calling it directly). Adds dedicated TestThresholdResolution
+coverage for the three-tier priority chain itself (agent override >
+vertical preset > global), which previously had no direct unit test of
+its own — test_workbench.py's TestProfilePriority covers the same chain
+but only indirectly through build_snapshot(). snapshot.py and the
+upcoming drift.py must resolve overrides identically, or the dashboard
+and the recompile-trigger report could disagree about what counts as
+green for the same agent+metric."
 ```
 
 ---
