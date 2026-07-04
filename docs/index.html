@@ -135,7 +135,7 @@
         <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#B5B6BB;font-weight:500;">GAP 02</div>
         <div style="font-size:16.5px;font-weight:650;line-height:1.4;letter-spacing:-.01em;">「agent 表现如何」靠跑测试看 pass/fail</div>
         <div style="display:flex;gap:10px;align-items:flex-start;"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#B0450E;background:rgba(200,84,42,0.1);padding:2px 7px;border-radius:6px;white-space:nowrap;margin-top:1px;">现状</span><span style="font-size:13.5px;line-height:1.6;color:#6A6C72;">测试全绿但 M013 这种 silent failure 漏过去了</span></div>
-        <div style="display:flex;gap:10px;align-items:flex-start;border-top:1px solid rgba(20,20,25,0.06);padding-top:14px;"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#1F7A48;background:rgba(46,158,91,0.12);padding:2px 7px;border-radius:6px;white-space:nowrap;margin-top:1px;">补什么</span><span style="font-size:13.5px;line-height:1.6;color:#33353B;font-weight:500;">仪表盘从 audit_log 提取 HITL 触发率、guardrail 拦截率、silent failure 代理等运营指标</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;border-top:1px solid rgba(20,20,25,0.06);padding-top:14px;"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#1F7A48;background:rgba(46,158,91,0.12);padding:2px 7px;border-radius:6px;white-space:nowrap;margin-top:1px;">补什么</span><span style="font-size:13.5px;line-height:1.6;color:#33353B;font-weight:500;">仪表盘从 audit_log 提取 HITL 触发率、guardrail 拦截率、silent failure 扫描等运营指标</span></div>
       </div>
       <div class="gap-card">
         <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#B5B6BB;font-weight:500;">GAP 03</div>
@@ -252,20 +252,20 @@
         </div>
         <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#8A8C90;">三个失效信号 · 诚实状态优先于好看数字</div>
       </div>
-      <p style="font-size:16px;line-height:1.7;color:#5C5E63;max-width:680px;margin:18px 0 0;">仪表盘回答「现在健康吗」，这一层回答「哪些评估资产需要重新验证」——agent 是把判断编译成规则、阈值和测试集的产物，而编译产物会随时间失效。三个信号各盯一类失效，报告由 <span style="font-family:'JetBrains Mono',monospace;font-size:14px;">run_recompile_check.py</span> 生成。</p>
+      <p style="font-size:16px;line-height:1.7;color:#5C5E63;max-width:680px;margin:18px 0 0;">仪表盘回答「agent 现在健康吗」，这一层回答「量健康的尺子还准不准」——goldset、阈值、风险规则本身也会随世界变化而过期。三个信号各盯一类失效，报告由 <span style="font-family:'JetBrains Mono',monospace;font-size:14px;">run_recompile_check.py</span> 生成。</p>
     </div>
 
     <div data-reveal style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;padding-bottom:20px;">
       <div class="gap-card">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#B5B6BB;font-weight:500;">SIGNAL 01</span><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#1F7A48;background:rgba(46,158,91,0.12);padding:2px 8px;border-radius:6px;">0 / 21 过期</span></div>
         <div style="font-size:16.5px;font-weight:650;line-height:1.4;letter-spacing:-.01em;">Goldset 时效性</div>
-        <p style="font-size:13.5px;line-height:1.65;color:#6A6C72;margin:0;">每条 gold case 带 <span style="font-family:'JetBrains Mono',monospace;font-size:12px;">last_verified</span>，距上次人工复验超 90 天即过期；<b>缺失该字段直接计入过期</b>——没填不等于新鲜。纯 age proxy，不假装比对了并不存在的法规变更数据源。</p>
+        <p style="font-size:13.5px;line-height:1.65;color:#6A6C72;margin:0;">每条 gold case 带 <span style="font-family:'JetBrains Mono',monospace;font-size:12px;">last_verified</span>，距上次人工复验超 90 天即过期；<b>缺失该字段直接计入过期</b>——没填不等于新鲜。纯 age proxy——法规变更追踪的数据源还不存在，就不假装比对过。</p>
         <div style="font-size:12px;line-height:1.6;color:#9A9CA2;border-top:1px solid rgba(20,20,25,0.06);padding-top:12px;">当前 0 过期的含义是「字段 2026-07-04 刚引入」，不是「全部验证过」——首批过期告警约在 90 天后出现。</div>
       </div>
       <div class="gap-card">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#B5B6BB;font-weight:500;">SIGNAL 02</span><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#8A6D1A;background:rgba(200,138,22,0.12);padding:2px 8px;border-radius:6px;">历史不足，暂不比较</span></div>
         <div style="font-size:16.5px;font-weight:650;line-height:1.4;letter-spacing:-.01em;">指标漂移检测</div>
-        <p style="font-size:13.5px;line-height:1.65;color:#6A6C72;margin:0;">滑动窗口对比六项核心指标：最近 5 次运行 vs 紧邻其前的 5 次，任一指标越级变色（如 green→yellow）记为漂移事件。阈值解析与仪表盘共用同一套优先级链，两处不会对「什么算绿」意见不一。</p>
+        <p style="font-size:13.5px;line-height:1.65;color:#6A6C72;margin:0;">滑动窗口对比六项核心指标：最近 5 次运行 vs 紧邻其前的 5 次，任一指标越级变色（如 green→yellow）记为漂移事件。阈值解析和仪表盘走同一套覆盖规则（全局 &lt; 垂类 &lt; agent），两边不会对「什么算绿」各说各话。</p>
         <div style="font-size:12px;line-height:1.6;color:#9A9CA2;border-top:1px solid rgba(20,20,25,0.06);padding-top:12px;">历史不足 2×5 条时如实显示「暂不比较」，不硬算。已知盲区：同色带内的缓慢滑坡要跨过边界才会报警。</div>
       </div>
       <div class="gap-card">
@@ -275,16 +275,16 @@
         <div style="font-size:12px;line-height:1.6;color:#9A9CA2;border-top:1px solid rgba(20,20,25,0.06);padding-top:12px;">把「没装检测」显示成「0 命中」就是假绿灯——和 M013 是同一类错误。当前两个 agent 均为「未接入」，这是诚实状态，不是失败状态。</div>
       </div>
     </div>
-    <div data-reveal style="font-size:12.5px;line-height:1.7;color:#8A8C90;padding-bottom:70px;max-width:760px;">设计动机：评估资产（goldset、阈值、风险规则）本身也会漂移和过期。一个只监控 agent、不监控自身时效性的评估工具，迟早用过期的尺子量出好看的数字。</div>
+    <div data-reveal style="font-size:12.5px;line-height:1.7;color:#8A8C90;padding-bottom:70px;max-width:760px;">设计动机：一个只监控 agent、从不检查自身时效的评估工具，迟早用过期的尺子量出好看的数字。</div>
   </section>
 
   <!-- ===== SILENT FAILURE (dark) ===== -->
   <section id="silent" style="background:#141518;color:#EDEDEA;">
     <div style="max-width:1120px;margin:0 auto;padding:0 32px;">
       <div data-reveal style="padding:96px 0 40px;">
-        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:color-mix(in oklab,var(--accent),white 30%);font-weight:500;margin-bottom:16px;">05 — 深度洞察</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:color-mix(in oklab,var(--accent),white 30%);font-weight:500;margin-bottom:16px;">05 — 失效案例</div>
         <h2 style="font-size:clamp(28px,3.4vw,44px);font-weight:700;letter-spacing:-.02em;margin:0 0 18px;max-width:760px;text-wrap:balance;">Silent Failure 的三种模式</h2>
-        <p style="font-size:16px;line-height:1.7;color:#9E9FA6;max-width:640px;margin:0;">测试全绿不等于没有问题。真正危险的失败，是那些不报错、静默通过的——这里展示已实现的结构化扫描与后续要进入 eval 的两类失效。</p>
+        <p style="font-size:16px;line-height:1.7;color:#9E9FA6;max-width:640px;margin:0;">测试全绿不等于没有问题。真正危险的失败，是那些不报错、静默通过的——三种模式：一种已自动扫描，一种契约已就位，一种规则还抓不到。</p>
       </div>
 
       <div data-reveal style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:22px;padding-bottom:40px;">
@@ -384,7 +384,7 @@
   var TREND_ARROWS = {up:'↑',down:'↓',flat:'→',none:'-'};
   var SCORE_COLORS = {'不建议上 agent':'#C88A16','简单 agent（routing）':ACCENT,'简单 agent（routing + HITL）':ACCENT,'中等 agent（routing + HITL + RAG）':ACCENT,'中等 agent（多步推理）':'#D8503A','复杂 agent（全栈）':'#D8503A'};
   var DIM_LABELS = {task_determinism:'任务不确定性',irreversibility:'不可逆性',risk_level:'风险等级',exception_rate:'异常率',unstructuredness:'数据非结构化程度',frequency:'频次'};
-  var METRIC_LABELS = {task_completion_rate:'任务完成率',accuracy_proxy:'准确率代理',hitl_trigger_rate:'HITL 触发率',guardrail_block_rate:'Guardrail 拦截率',silent_failure_rate:'Silent Failure',avg_latency_ms:'平均延迟'};
+  var METRIC_LABELS = {task_completion_rate:'任务完成率',accuracy_proxy:'准确率 proxy',hitl_trigger_rate:'HITL 触发率',guardrail_block_rate:'Guardrail 拦截率',silent_failure_rate:'Silent Failure',avg_latency_ms:'平均延迟'};
 
   function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 
