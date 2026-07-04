@@ -10,9 +10,10 @@ from datetime import datetime
 
 from eval.metric_registry import METRIC_REGISTRY, MetricEntry
 from eval.metrics import AgentMetrics
+from eval.threshold_resolution import resolve_threshold_cfg
 
 
-def _threshold_status(value: float, metric_cfg: dict) -> str:
+def threshold_status(value: float, metric_cfg: dict) -> str:
     """Return semantic status: green | yellow | red."""
     g_lo, g_hi = metric_cfg["green"]
     y_lo, y_hi = metric_cfg["yellow"]
@@ -70,15 +71,8 @@ def build_snapshot(
 
         prev_metrics = previous.get(m.name) if previous else None
 
-        _DEFAULT_THRESHOLDS = {"green": [0.0, 1.0], "yellow": [0.0, 1.0], "red": [0.0, 1.0]}
-
         def _get_cfg(thresholds_key: str) -> dict:
-            # Priority: agent override > vertical preset > global
-            if thresholds_key in overrides:
-                return overrides[thresholds_key]
-            if thresholds_key in vertical_presets:
-                return vertical_presets[thresholds_key]
-            return t.get(thresholds_key, _DEFAULT_THRESHOLDS)
+            return resolve_threshold_cfg(thresholds_key, t, overrides, vertical_presets)
 
         def _threshold_source(thresholds_key: str) -> str:
             if thresholds_key in overrides:
@@ -108,7 +102,7 @@ def build_snapshot(
                 elif value is None:
                     status = "error"
                 else:
-                    status = _threshold_status(value, cfg)
+                    status = threshold_status(value, cfg)
 
                 prev_val = prev_metrics.get(entry.key) if prev_metrics else None
                 trend = _trend_semantic(value or 0, prev_val, entry)

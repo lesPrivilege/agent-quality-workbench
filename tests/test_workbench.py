@@ -12,7 +12,7 @@ from eval.metrics import (
     generate_dashboard,
     load_agents,
 )
-from eval.snapshot import build_snapshot, _threshold_status
+from eval.snapshot import build_snapshot, threshold_status
 from scripts.run_scorer import load_rubric, score_scenario
 
 
@@ -315,11 +315,11 @@ class TestProfilePriority:
 
     def test_threshold_status_green(self):
         cfg = {"green": [0.0, 0.7], "yellow": [0.7, 0.85], "red": [0.85, 1.0]}
-        assert _threshold_status(0.6, cfg) == "green"
+        assert threshold_status(0.6, cfg) == "green"
 
     def test_threshold_status_yellow(self):
         cfg = {"green": [0.0, 0.7], "yellow": [0.7, 0.85], "red": [0.85, 1.0]}
-        assert _threshold_status(0.75, cfg) == "yellow"
+        assert threshold_status(0.75, cfg) == "yellow"
 
     def test_agent_override_wins_over_vertical(self):
         thresholds = self._make_thresholds()
