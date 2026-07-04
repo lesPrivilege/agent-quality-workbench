@@ -6,6 +6,7 @@ from datetime import date
 from eval.threshold_resolution import resolve_threshold_cfg
 from eval.staleness import compute_goldset_staleness
 from eval.drift import detect_metric_drift
+from eval.regulation_staleness import scan_regulation_staleness
 
 
 class TestThresholdResolution:
@@ -232,3 +233,43 @@ class TestMetricDrift:
         assert events[0]["old_status"] == "green"   # 0.2 avg, NOT 0.9 (which would be red)
         assert events[0]["new_status"] == "yellow"
         assert events[0]["old_window_span"] == {"from": "2026-07-01", "to": "2026-07-02"}
+
+
+class TestRegulationStaleness:
+    def test_not_instrumented_when_field_absent(self):
+        entries = [{"case_id": "M001", "decision": "auto_approved"}]
+        result = scan_regulation_staleness(entries, id_field="case_id", today=date(2026, 7, 4))
+        assert result == {"instrumented": False}
+
+    def test_not_instrumented_when_no_entries(self):
+        result = scan_regulation_staleness([], id_field="case_id", today=date(2026, 7, 4))
+        assert result == {"instrumented": False}
+
+    def test_instrumented_and_clean(self):
+        entries = [{
+            "case_id": "M001",
+            "regulation_refs": [{"id": "反垄断合规", "effective_until": "2027-01-01"}],
+        }]
+        result = scan_regulation_staleness(entries, id_field="case_id", today=date(2026, 7, 4))
+        assert result == {"instrumented": True, "stale_count": 0, "stale_refs": []}
+
+    def test_instrumented_and_stale_found(self):
+        entries = [{
+            "case_id": "M002",
+            "regulation_refs": [{"id": "反垄断合规", "effective_until": "2025-01-01"}],
+        }]
+        result = scan_regulation_staleness(entries, id_field="case_id", today=date(2026, 7, 4))
+        assert result["instrumented"] is True
+        assert result["stale_count"] == 1
+        assert result["stale_refs"] == [
+            {"case_id": "M002", "regulation_id": "反垄断合规", "effective_until": "2025-01-01"}
+        ]
+
+    def test_respects_id_field_param(self):
+        """contract-approval-agent uses contract_id, not case_id, as its raw id field."""
+        entries = [{
+            "contract_id": "C005",
+            "regulation_refs": [{"id": "关联交易审查", "effective_until": "2025-06-01"}],
+        }]
+        result = scan_regulation_staleness(entries, id_field="contract_id", today=date(2026, 7, 4))
+        assert result["stale_refs"][0]["case_id"] == "C005"
